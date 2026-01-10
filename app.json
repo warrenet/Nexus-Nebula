@@ -25,12 +25,16 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png",
-      "name": "Nexus Nebula",
-      "shortName": "Nebula",
-      "description": "Bayesian AI Task Orchestrator with Swarm Intelligence",
-      "backgroundColor": "#0a0a0f",
-      "themeColor": "#8b5cf6"
+      "favicon": "./web/icons/icon-192x192.svg",
+      "name": "Nexus Nebula: Rogue Bayes Engine",
+      "shortName": "Nexus",
+      "description": "A sovereign Bayesian swarm orchestrator with multi-turn critique and real-time consensus.",
+      "backgroundColor": "#0a0a0a",
+      "themeColor": "#0a0a0a",
+      "orientation": "portrait",
+      "display": "standalone",
+      "scope": "/",
+      "startUrl": "/"
     },
     "plugins": [
       [

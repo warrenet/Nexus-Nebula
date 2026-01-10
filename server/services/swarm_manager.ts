@@ -22,6 +22,7 @@ import {
   incrementRedTeamFlags,
   recordRequestDuration,
 } from './metrics';
+import { swarmEventEmitter } from './SwarmEventEmitter';
 
 const DEFAULT_CONFIG: SwarmConfig = {
   startAgents: 8,
@@ -30,12 +31,21 @@ const DEFAULT_CONFIG: SwarmConfig = {
   freeModel: 'google/gemini-2.0-flash-exp:free',
   synthesisModel: 'anthropic/claude-3.5-sonnet',
   fallbackModel: 'openai/gpt-4o',
-  maxBudget: 1.25,
+  maxBudget: 2.00,
   throttleMs: 6000,
   maxRetries: 5,
   baseBackoffMs: 1000,
   maxBackoffMs: 32000,
 };
+
+// Multi-turn critique configuration (2026 Sovereign Calibration)
+const CONSENSUS_THRESHOLD = 0.92; // Sweet spot for speed vs rigor
+const MAX_CRITIQUE_ITERATIONS = 5;
+const REVIEWER_MODEL = 'anthropic/claude-3.5-sonnet';
+
+// Guardian Agent configuration - prevents hallucination loops and budget bleeding
+const MIN_CONSENSUS_IMPROVEMENT = 0.02; // Minimum improvement required per iteration
+const GUARDIAN_PATIENCE = 2; // Number of stagnant iterations before graceful fail
 
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   'google/gemini-2.0-flash-exp:free': { input: 0, output: 0 },
@@ -281,6 +291,116 @@ Provide your synthesis now:`;
   }
 }
 
+/**
+ * Run a critique round where the Reviewer model cross-examines agent responses
+ * and refines their confidence scores based on logical consistency and coverage.
+ */
+async function runCritiqueRound(
+  mission: string,
+  agentResponses: AgentResponse[],
+  critiqueIteration: number,
+  traceId: string,
+  config: SwarmConfig = DEFAULT_CONFIG
+): Promise<{ critiquedResponses: AgentResponse[]; consensusScore: number; critiqueTokens: { input: number; output: number } }> {
+
+  swarmEventEmitter.emitSwarmEvent({
+    traceId,
+    type: 'critique_start',
+    data: { iteration: critiqueIteration, agentCount: agentResponses.length },
+    timestamp: Date.now(),
+  });
+
+  const responseSummaries = agentResponses
+    .filter(r => !r.error)
+    .map(r => `[${r.agentId}] (Confidence: ${r.confidence.toFixed(2)})\n${r.response.substring(0, 500)}${r.response.length > 500 ? '...' : ''}`)
+    .join('\n\n---\n\n');
+
+  const critiquePrompt = `You are the Bayesian Reviewer for "Nexus Nebula: The Rogue Bayes Engine".
+
+MISSION: ${mission}
+
+SWARM RESPONSES (Critique Round ${critiqueIteration}):
+${responseSummaries}
+
+ANALYZE each response for:
+1. Logical consistency - Does the reasoning hold?
+2. Coverage - Are there blind spots or missing angles?
+3. Originality - Does it add unique value beyond other responses?
+4. Accuracy - Are claims well-supported?
+
+For EACH agent, provide a refined confidence score (0.00-1.00) and brief justification.
+
+FORMAT YOUR RESPONSE EXACTLY AS:
+[AGENT_ID]: [NEW_SCORE] | [ONE_LINE_JUSTIFICATION]
+
+Example:
+agent-1: 0.85 | Strong logical flow but misses edge case X
+agent-2: 0.72 | Good coverage but some circular reasoning
+
+After all agents, provide:
+[CONSENSUS]: [SCORE] | [OVERALL_ASSESSMENT]
+
+Where CONSENSUS score is 0.00-1.00 indicating overall swarm agreement level.`;
+
+  try {
+    const response = await callOpenRouter({
+      model: REVIEWER_MODEL,
+      messages: [{ role: 'user', content: critiquePrompt }],
+      temperature: 0.4,
+      max_tokens: 800,
+    }, 0, config);
+
+    const critiqueContent = response.choices[0]?.message?.content || '';
+    const critiqueTokens = {
+      input: response.usage?.prompt_tokens || 0,
+      output: response.usage?.completion_tokens || 0,
+    };
+
+    // Stream the critique as a "thought"
+    swarmEventEmitter.emitThought({
+      agentId: 'reviewer',
+      traceId,
+      type: 'critique',
+      content: critiqueContent,
+      timestamp: Date.now(),
+    });
+
+    // Parse refined confidence scores
+    const critiquedResponses = agentResponses.map(agent => {
+      const pattern = new RegExp(`${agent.agentId}:\\s*([\\d.]+)`, 'i');
+      const match = critiqueContent.match(pattern);
+      const refinedConfidence = match ? parseFloat(match[1]) : agent.confidence;
+
+      return {
+        ...agent,
+        confidence: Math.min(1, Math.max(0, refinedConfidence)),
+      };
+    });
+
+    // Extract consensus score
+    const consensusMatch = critiqueContent.match(/\[CONSENSUS\]:\s*([\d.]+)/i);
+    const consensusScore = consensusMatch ? parseFloat(consensusMatch[1]) : 0;
+
+    swarmEventEmitter.emitSwarmEvent({
+      traceId,
+      type: 'critique_complete',
+      data: { iteration: critiqueIteration, consensusScore },
+      timestamp: Date.now(),
+    });
+
+    return { critiquedResponses, consensusScore: Math.min(1, Math.max(0, consensusScore)), critiqueTokens };
+  } catch (error) {
+    console.error('Critique round failed:', error);
+    // Fallback: calculate consensus from existing confidences
+    const avgConfidence = agentResponses.reduce((sum, r) => sum + r.confidence, 0) / agentResponses.length;
+    return {
+      critiquedResponses: agentResponses,
+      consensusScore: avgConfidence,
+      critiqueTokens: { input: 0, output: 0 }
+    };
+  }
+}
+
 function calculatePosteriorWeights(responses: AgentResponse[]): Record<string, number> {
   const validResponses = responses.filter(r => !r.error && r.confidence > 0);
   if (validResponses.length === 0) {
@@ -314,12 +434,12 @@ function calculateActualCost(
   const swarmCost = MODEL_COSTS[config.freeModel] || { input: 0, output: 0 };
   for (const response of agentResponses) {
     totalCost += (response.tokens.input * swarmCost.input / 1000) +
-                 (response.tokens.output * swarmCost.output / 1000);
+      (response.tokens.output * swarmCost.output / 1000);
   }
 
   const synthesisCost = MODEL_COSTS[config.synthesisModel] || MODEL_COSTS['anthropic/claude-3.5-sonnet'];
   totalCost += (synthesisTokens.input * synthesisCost.input / 1000) +
-               (synthesisTokens.output * synthesisCost.output / 1000);
+    (synthesisTokens.output * synthesisCost.output / 1000);
 
   return totalCost;
 }
@@ -432,19 +552,19 @@ export async function executeMission(
           await sleep(config.throttleMs * i);
         }
         const result = await runSwarmAgent(agentId, mission, traceId, config);
-        
+
         const agentIndex = swarmStatus.agents.findIndex(a => a.id === agentId);
         if (agentIndex !== -1) {
           swarmStatus.agents[agentIndex].status = result.error ? 'failed' : 'completed';
           swarmStatus.agents[agentIndex].confidence = result.confidence;
           swarmStatus.agents[agentIndex].latencyMs = result.latencyMs;
         }
-        
+
         swarmStatus.progress = Math.floor(
           (swarmStatus.agents.filter(a => a.status === 'completed' || a.status === 'failed').length / agentCount) * 80
         );
         swarmStatus.message = `Processing agent ${i + 1} of ${agentCount}...`;
-        
+
         return result;
       })();
 
@@ -465,22 +585,98 @@ export async function executeMission(
       trace.redTeamFlags.push(...outputFlags);
     }
 
-    const posteriorWeights = calculatePosteriorWeights(agentResponses);
+    // Multi-turn critique loop - cross-examine until consensus threshold or max iterations
+    let currentResponses = agentResponses;
+    let consensusScore = 0;
+    let critiqueIteration = 0;
+    let totalCritiqueTokens = { input: 0, output: 0 };
 
-    const iteration: Iteration = {
-      iterationId: 1,
-      agentResponses,
-      consensusScore: Object.values(posteriorWeights).reduce((a, b) => a + b, 0) / agentCount,
-      timestamp: new Date().toISOString(),
-    };
-    trace.iterations.push(iteration);
-    trace.finalPosteriorWeights = posteriorWeights;
+    // Guardian Agent tracking - prevents hallucination loops and budget bleeding
+    let previousConsensusScore = 0;
+    let stagnantIterations = 0;
+    let guardianTriggered = false;
+
+    swarmEventEmitter.emitSwarmEvent({
+      traceId,
+      type: 'consensus_update',
+      data: { iteration: 0, consensusScore: 0, threshold: CONSENSUS_THRESHOLD },
+      timestamp: Date.now(),
+    });
+
+    while (consensusScore < CONSENSUS_THRESHOLD && critiqueIteration < MAX_CRITIQUE_ITERATIONS) {
+      critiqueIteration++;
+      swarmStatus.message = `Critique round ${critiqueIteration}/${MAX_CRITIQUE_ITERATIONS}...`;
+      swarmStatus.progress = 60 + Math.floor((critiqueIteration / MAX_CRITIQUE_ITERATIONS) * 20);
+
+      const critiqueResult = await runCritiqueRound(
+        mission,
+        currentResponses,
+        critiqueIteration,
+        traceId,
+        config
+      );
+
+      currentResponses = critiqueResult.critiquedResponses;
+      consensusScore = critiqueResult.consensusScore;
+      totalCritiqueTokens.input += critiqueResult.critiqueTokens.input;
+      totalCritiqueTokens.output += critiqueResult.critiqueTokens.output;
+
+      // Guardian Agent: Check for stagnation (no meaningful improvement)
+      const improvement = consensusScore - previousConsensusScore;
+      if (improvement < MIN_CONSENSUS_IMPROVEMENT && critiqueIteration > 1) {
+        stagnantIterations++;
+        console.log(`Guardian Agent: Stagnant iteration ${stagnantIterations}/${GUARDIAN_PATIENCE} (improvement: ${improvement.toFixed(4)})`);
+
+        if (stagnantIterations >= GUARDIAN_PATIENCE) {
+          console.log(`Guardian Agent: Triggering graceful fail - hallucination loop detected. Saving budget.`);
+          guardianTriggered = true;
+          swarmEventEmitter.emitSwarmEvent({
+            traceId,
+            type: 'consensus_update',
+            data: { iteration: critiqueIteration, consensusScore, threshold: CONSENSUS_THRESHOLD, guardianFail: true },
+            timestamp: Date.now(),
+          });
+          break; // Exit early to save budget
+        }
+      } else {
+        stagnantIterations = 0; // Reset if we made progress
+      }
+      previousConsensusScore = consensusScore;
+
+      // Store this iteration in the trace
+      const posteriorWeights = calculatePosteriorWeights(currentResponses);
+      const iteration: Iteration = {
+        iterationId: critiqueIteration,
+        agentResponses: currentResponses,
+        consensusScore,
+        timestamp: new Date().toISOString(),
+      };
+      trace.iterations.push(iteration);
+      trace.finalPosteriorWeights = posteriorWeights;
+
+      swarmEventEmitter.emitSwarmEvent({
+        traceId,
+        type: 'consensus_update',
+        data: { iteration: critiqueIteration, consensusScore, threshold: CONSENSUS_THRESHOLD },
+        timestamp: Date.now(),
+      });
+
+      console.log(`Critique round ${critiqueIteration}: consensus = ${consensusScore.toFixed(3)}`);
+
+      if (consensusScore >= CONSENSUS_THRESHOLD) {
+        console.log(`Consensus threshold ${CONSENSUS_THRESHOLD} reached after ${critiqueIteration} rounds`);
+        break;
+      }
+    }
+
+    const finalPosteriorWeights = calculatePosteriorWeights(currentResponses);
+    trace.finalPosteriorWeights = finalPosteriorWeights;
 
     swarmStatus.status = 'synthesizing';
     swarmStatus.progress = 85;
     swarmStatus.message = 'Synthesizing swarm insights...';
 
-    const synthesis = await runSynthesis(mission, agentResponses, posteriorWeights, config);
+    const synthesis = await runSynthesis(mission, currentResponses, finalPosteriorWeights, config);
 
     const synthesisFlags = scanContent(synthesis.content, 'synthesis');
     if (synthesisFlags.length > 0) {
@@ -488,7 +684,12 @@ export async function executeMission(
       trace.redTeamFlags.push(...synthesisFlags);
     }
 
-    const actualCost = calculateActualCost(agentResponses, synthesis.tokens, config);
+    // Include critique tokens in cost calculation
+    const combinedSynthesisTokens = {
+      input: synthesis.tokens.input + totalCritiqueTokens.input,
+      output: synthesis.tokens.output + totalCritiqueTokens.output,
+    };
+    const actualCost = calculateActualCost(currentResponses, combinedSynthesisTokens, config);
     addCost(actualCost);
 
     trace.synthesisResult = sanitizeForTrace(synthesis.content);

@@ -9,9 +9,13 @@ import {
 } from "./services/swarm_manager";
 import { getTrace, listTraces } from "./services/trace_store";
 import { formatPrometheusMetrics } from "./services/metrics";
+import { swarmEventEmitter } from "./services/SwarmEventEmitter";
 import type { MissionRequest } from "./types";
 
 const wsClients: Set<WebSocket> = new Set();
+
+// Map to track active subscriptions for cleanup
+const clientSubscriptions: Map<WebSocket, (() => void)[]> = new Map();
 
 function broadcastSwarmUpdate(traceId: string): void {
   const status = getSwarmStatus(traceId);
@@ -30,6 +34,9 @@ function broadcastSwarmUpdate(traceId: string): void {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Import Smart Tiering for Task vs Mission classification
+  const { classifyInput, executeLocalTask, getTierCostEstimate } = await import('./services/smart_tiering');
+
   app.post("/api/mission/execute", async (req: Request, res: Response) => {
     try {
       const { mission, swarmSize, maxBudget } = req.body as MissionRequest;
@@ -44,6 +51,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Smart Tiering: Classify as Task (free) or Mission (Bayesian Swarm)
+      const classification = classifyInput(mission);
+      console.log(`Smart Tiering: ${classification.tier} (${(classification.confidence * 100).toFixed(0)}% - ${classification.reason})`);
+
+      if (classification.tier === 'task' && classification.localHandler) {
+        // Execute locally for $0 cost
+        const content = req.body.content || mission;
+        const result = executeLocalTask(mission, content);
+
+        res.json({
+          traceId: `task-${Date.now()}`,
+          synthesis: result,
+          iterations: [],
+          cost: 0,
+          durationMs: 10,
+          redTeamFlags: [],
+          tier: 'task',
+          tierReason: classification.reason,
+        });
+        return;
+      }
+
+      // Mission path: Use Bayesian Swarm
       const trace = await executeMission(mission, swarmSize, maxBudget);
 
       res.json({
@@ -53,11 +83,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cost: trace.actualCost,
         durationMs: trace.durationMs,
         redTeamFlags: trace.redTeamFlags,
+        tier: 'mission',
+        tierReason: classification.reason,
       });
     } catch (error) {
       console.error("Mission execution error:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      
+
       if (message.includes("blocked by safety")) {
         res.status(403).json({ error: message });
         return;
@@ -66,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(402).json({ error: message });
         return;
       }
-      
+
       res.status(500).json({ error: message });
     }
   });
@@ -176,11 +208,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   wss.on("connection", (ws: WebSocket) => {
     wsClients.add(ws);
+    clientSubscriptions.set(ws, []);
     console.log("WebSocket client connected");
 
     ws.on("message", (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
+        const subscriptions = clientSubscriptions.get(ws) || [];
+
+        // Legacy status polling subscription
         if (message.type === "subscribe" && message.traceId) {
           const intervalId = setInterval(() => {
             const status = getSwarmStatus(message.traceId);
@@ -196,18 +232,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           ws.on("close", () => clearInterval(intervalId));
         }
+
+        // Real-time thought streaming subscription
+        if (message.type === "stream_thoughts" && message.traceId) {
+          const unsubscribe = swarmEventEmitter.subscribeToThoughts(
+            message.traceId,
+            (thought) => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: "agent_thought",
+                  agentId: thought.agentId,
+                  thoughtType: thought.type,
+                  content: thought.content,
+                  confidence: thought.confidence,
+                  timestamp: thought.timestamp,
+                }));
+              }
+            }
+          );
+          subscriptions.push(unsubscribe);
+          clientSubscriptions.set(ws, subscriptions);
+          console.log(`Client subscribed to thoughts for trace: ${message.traceId}`);
+        }
+
+        // Real-time swarm event streaming
+        if (message.type === "stream_events" && message.traceId) {
+          const unsubscribe = swarmEventEmitter.subscribeToTrace(
+            message.traceId,
+            (event) => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: "swarm_event",
+                  eventType: event.type,
+                  data: event.data,
+                  timestamp: event.timestamp,
+                }));
+              }
+            }
+          );
+          subscriptions.push(unsubscribe);
+          clientSubscriptions.set(ws, subscriptions);
+          console.log(`Client subscribed to events for trace: ${message.traceId}`);
+        }
       } catch (error) {
         console.error("WebSocket message error:", error);
       }
     });
 
     ws.on("close", () => {
+      // Cleanup all subscriptions for this client
+      const subscriptions = clientSubscriptions.get(ws) || [];
+      for (const unsubscribe of subscriptions) {
+        unsubscribe();
+      }
+      clientSubscriptions.delete(ws);
       wsClients.delete(ws);
       console.log("WebSocket client disconnected");
     });
 
     ws.on("error", (error) => {
       console.error("WebSocket error:", error);
+      const subscriptions = clientSubscriptions.get(ws) || [];
+      for (const unsubscribe of subscriptions) {
+        unsubscribe();
+      }
+      clientSubscriptions.delete(ws);
       wsClients.delete(ws);
     });
   });

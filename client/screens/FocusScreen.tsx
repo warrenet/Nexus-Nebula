@@ -7,6 +7,11 @@ import {
   Animated,
   Platform,
 } from "react-native";
+import ReanimatedView, {
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+} from "react-native-reanimated";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +20,8 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
-import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Colors, Spacing, BorderRadius, Typography, AnimationConfig } from "@/constants/theme";
+import { HapticPatterns } from "@/lib/haptics";
 
 interface SwarmAgent {
   id: string;
@@ -49,7 +55,7 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
-    
+
     if (agent.status === "running") {
       animation = Animated.loop(
         Animated.sequence([
@@ -69,7 +75,7 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
     } else {
       shimmerAnim.setValue(0);
     }
-    
+
     return () => {
       if (animation) {
         animation.stop();
@@ -110,54 +116,60 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
   });
 
   return (
-    <Animated.View style={{ opacity: fadeAnim }}>
-      <GlassCard style={styles.agentCard}>
-        <View style={styles.agentHeader}>
-          <View style={styles.agentIdContainer}>
-            <Feather name="cpu" size={16} color={Colors.dark.primaryGradientStart} />
-            <ThemedText style={styles.agentId}>{agent.id}</ThemedText>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + "20" }]}>
-            <Feather name={getStatusIcon()} size={12} color={getStatusColor()} />
-            <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
-              {agent.status}
-            </ThemedText>
-          </View>
-        </View>
-
-        <ThemedText style={styles.modelName}>{agent.model}</ThemedText>
-
-        {agent.status === "running" ? (
-          <Animated.View style={[styles.shimmerBar, { opacity: shimmerOpacity }]}>
-            <LinearGradient
-              colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.shimmerGradient}
-            />
-          </Animated.View>
-        ) : null}
-
-        {agent.status === "completed" && agent.confidence !== undefined ? (
-          <View style={styles.metricsRow}>
-            <View style={styles.metric}>
-              <ThemedText style={styles.metricLabel}>Confidence</ThemedText>
-              <ThemedText style={styles.metricValue}>
-                {(agent.confidence * 100).toFixed(1)}%
+    <ReanimatedView
+      entering={FadeInDown.delay(index * 80).springify().damping(AnimationConfig.springDamping).stiffness(AnimationConfig.springStiffness)}
+      exiting={FadeOutUp.springify()}
+      layout={Layout.springify().damping(AnimationConfig.springDamping).stiffness(AnimationConfig.springStiffness)}
+    >
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <GlassCard style={styles.agentCard}>
+          <View style={styles.agentHeader}>
+            <View style={styles.agentIdContainer}>
+              <Feather name="cpu" size={16} color={Colors.dark.primaryGradientStart} />
+              <ThemedText style={styles.agentId}>{agent.id}</ThemedText>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + "20" }]}>
+              <Feather name={getStatusIcon()} size={12} color={getStatusColor()} />
+              <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
+                {agent.status}
               </ThemedText>
             </View>
-            {agent.latencyMs !== undefined ? (
+          </View>
+
+          <ThemedText style={styles.modelName}>{agent.model}</ThemedText>
+
+          {agent.status === "running" ? (
+            <Animated.View style={[styles.shimmerBar, { opacity: shimmerOpacity }]}>
+              <LinearGradient
+                colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.shimmerGradient}
+              />
+            </Animated.View>
+          ) : null}
+
+          {agent.status === "completed" && agent.confidence !== undefined ? (
+            <View style={styles.metricsRow}>
               <View style={styles.metric}>
-                <ThemedText style={styles.metricLabel}>Latency</ThemedText>
+                <ThemedText style={styles.metricLabel}>Confidence</ThemedText>
                 <ThemedText style={styles.metricValue}>
-                  {(agent.latencyMs / 1000).toFixed(2)}s
+                  {(agent.confidence * 100).toFixed(1)}%
                 </ThemedText>
               </View>
-            ) : null}
-          </View>
-        ) : null}
-      </GlassCard>
-    </Animated.View>
+              {agent.latencyMs !== undefined ? (
+                <View style={styles.metric}>
+                  <ThemedText style={styles.metricLabel}>Latency</ThemedText>
+                  <ThemedText style={styles.metricValue}>
+                    {(agent.latencyMs / 1000).toFixed(2)}s
+                  </ThemedText>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </GlassCard>
+      </Animated.View>
+    </ReanimatedView>
   );
 }
 

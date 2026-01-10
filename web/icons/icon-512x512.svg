@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Nebula Gradient -->
+    <radialGradient id="nebulaGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#6D28D9" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0A0A0A" stop-opacity="1"/>
+    </radialGradient>
+    
+    <!-- Glow Filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Inner Glow -->
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0A0A0A"/>
+  
+  <!-- Nebula Core -->
+  <circle cx="256" cy="256" r="200" fill="url(#nebulaGradient)" filter="url(#glow)"/>
+  
+  <!-- Inner Spiral -->
+  <g filter="url(#innerGlow)">
+    <ellipse cx="256" cy="256" rx="120" ry="80" fill="none" stroke="#06B6D4" stroke-width="3" opacity="0.6" transform="rotate(-30 256 256)"/>
+    <ellipse cx="256" cy="256" rx="100" ry="60" fill="none" stroke="#8B5CF6" stroke-width="2" opacity="0.5" transform="rotate(15 256 256)"/>
+    <ellipse cx="256" cy="256" rx="80" ry="40" fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.4" transform="rotate(-60 256 256)"/>
+  </g>
+  
+  <!-- Central Core -->
+  <circle cx="256" cy="256" r="40" fill="#8B5CF6" filter="url(#glow)"/>
+  <circle cx="256" cy="256" r="25" fill="#06B6D4"/>
+  <circle cx="256" cy="256" r="12" fill="#FFFFFF" opacity="0.9"/>
+  
+  <!-- Orbital Nodes (Bayesian Agents) -->
+  <g opacity="0.8">
+    <circle cx="180" cy="180" r="12" fill="#10B981" filter="url(#glow)"/>
+    <circle cx="332" cy="180" r="10" fill="#F59E0B" filter="url(#glow)"/>
+    <circle cx="356" cy="280" r="14" fill="#06B6D4" filter="url(#glow)"/>
+    <circle cx="180" cy="332" r="11" fill="#8B5CF6" filter="url(#glow)"/>
+    <circle cx="300" cy="350" r="9" fill="#10B981" filter="url(#glow)"/>
+  </g>
+  
+  <!-- Connection Lines (Neural Network) -->
+  <g stroke="#06B6D4" stroke-width="1" opacity="0.3">
+    <line x1="256" y1="256" x2="180" y2="180"/>
+    <line x1="256" y1="256" x2="332" y2="180"/>
+    <line x1="256" y1="256" x2="356" y2="280"/>
+    <line x1="256" y1="256" x2="180" y2="332"/>
+    <line x1="256" y1="256" x2="300" y2="350"/>
+  </g>
+  
+  <!-- Stars -->
+  <g fill="#FFFFFF" opacity="0.6">
+    <circle cx="80" cy="80" r="2"/>
+    <circle cx="420" cy="100" r="1.5"/>
+    <circle cx="450" cy="400" r="2"/>
+    <circle cx="60" cy="380" r="1"/>
+    <circle cx="100" cy="450" r="1.5"/>
+    <circle cx="380" cy="60" r="1"/>
+  </g>
+</svg>
