@@ -15,7 +15,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -23,6 +23,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { apiRequest, getApiUrl } from "@/lib/query-client";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { NebulaBackground } from "@/components/NebulaBackground";
 import type { MainTabParamList } from "@/navigation/MainTabNavigator";
 
 interface MissionResponse {
@@ -48,11 +49,12 @@ export default function MissionScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
   const queryClient = useQueryClient();
-  
+
   const [mission, setMission] = useState("");
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const inputRef = useRef<TextInput>(null);
+  const isFocused = useIsFocused(); // For lazy GPU nebula activation
 
   const executeMutation = useMutation({
     mutationFn: async (missionText: string) => {
@@ -99,7 +101,7 @@ export default function MissionScreen() {
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
-    
+
     if (executeMutation.isPending) {
       animation = Animated.loop(
         Animated.sequence([
@@ -119,7 +121,7 @@ export default function MissionScreen() {
     } else {
       pulseAnim.setValue(1);
     }
-    
+
     return () => {
       if (animation) {
         animation.stop();
@@ -151,6 +153,8 @@ export default function MissionScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: Colors.dark.backgroundRoot }]}>
+      {/* GPU Nebula - Only active when this tab is focused */}
+      {Platform.OS === 'web' && <NebulaBackground isActive={isFocused} />}
       <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.scrollContent,
@@ -189,7 +193,7 @@ export default function MissionScreen() {
             onKeyPress={handleKeyPress}
             testID="input-mission"
           />
-          
+
           {costEstimate ? (
             <View style={styles.costEstimate}>
               <Feather name="dollar-sign" size={14} color={Colors.dark.textSecondary} />
