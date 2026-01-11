@@ -25,7 +25,7 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./web/icons/icon-192x192.svg",
+      "favicon": "./web/icons/icon-192x192.png",
       "name": "Nexus Nebula: Rogue Bayes Engine",
       "shortName": "Nexus",
       "description": "A sovereign Bayesian swarm orchestrator with multi-turn critique and real-time consensus.",
