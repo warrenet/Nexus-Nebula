@@ -2,9 +2,9 @@
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "name": "nexus-nebula",
     "version": 2,
-    "buildCommand": "npm run build",
+    "buildCommand": "npx expo export -p web",
     "outputDirectory": "dist",
-    "framework": "expo",
+    "installCommand": "npm install",
     "regions": [
         "iad1"
     ],
