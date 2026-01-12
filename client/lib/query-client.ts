@@ -63,14 +63,40 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+/**
+ * Smart retry function - only retry on network errors and 5xx, not 4xx
+ */
+function shouldRetry(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 3) return false;
+
+  if (error instanceof Error) {
+    const message = error.message;
+    // Don't retry on client errors (4xx)
+    if (message.startsWith("4")) return false;
+    // Retry on network errors and server errors (5xx)
+    if (message.startsWith("5") || message.includes("fetch")) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Calculate retry delay with exponential backoff
+ */
+function retryDelay(attemptIndex: number): number {
+  return Math.min(1000 * 2 ** attemptIndex, 30000);
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchOnWindowFocus: true, // Enable for better UX
+      staleTime: 60_000, // 1 minute default
+      gcTime: 300_000, // 5 minute garbage collection
+      retry: shouldRetry,
+      retryDelay,
     },
     mutations: {
       retry: false,

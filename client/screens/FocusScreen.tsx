@@ -1,13 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Image,
-  Animated,
-  Platform,
-} from "react-native";
-import ReanimatedView, {
+import { View, StyleSheet, FlatList, Image, Animated } from "react-native";
+import ReanimatedAnimated, {
   FadeInDown,
   FadeOutUp,
   Layout,
@@ -20,8 +13,13 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
-import { Colors, Spacing, BorderRadius, Typography, AnimationConfig } from "@/constants/theme";
-import { HapticPatterns } from "@/lib/haptics";
+import {
+  Colors,
+  Spacing,
+  BorderRadius,
+  Typography,
+  AnimationConfig,
+} from "@/constants/theme";
 
 interface SwarmAgent {
   id: string;
@@ -69,7 +67,7 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
             duration: 1000,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
       animation.start();
     } else {
@@ -116,21 +114,41 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
   });
 
   return (
-    <ReanimatedView
-      entering={FadeInDown.delay(index * 80).springify().damping(AnimationConfig.springDamping).stiffness(AnimationConfig.springStiffness)}
+    <ReanimatedAnimated.View
+      entering={FadeInDown.delay(index * 80)
+        .springify()
+        .damping(AnimationConfig.springDamping)
+        .stiffness(AnimationConfig.springStiffness)}
       exiting={FadeOutUp.springify()}
-      layout={Layout.springify().damping(AnimationConfig.springDamping).stiffness(AnimationConfig.springStiffness)}
+      layout={Layout.springify()
+        .damping(AnimationConfig.springDamping)
+        .stiffness(AnimationConfig.springStiffness)}
     >
       <Animated.View style={{ opacity: fadeAnim }}>
         <GlassCard style={styles.agentCard}>
           <View style={styles.agentHeader}>
             <View style={styles.agentIdContainer}>
-              <Feather name="cpu" size={16} color={Colors.dark.primaryGradientStart} />
+              <Feather
+                name="cpu"
+                size={16}
+                color={Colors.dark.primaryGradientStart}
+              />
               <ThemedText style={styles.agentId}>{agent.id}</ThemedText>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + "20" }]}>
-              <Feather name={getStatusIcon()} size={12} color={getStatusColor()} />
-              <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor() + "20" },
+              ]}
+            >
+              <Feather
+                name={getStatusIcon()}
+                size={12}
+                color={getStatusColor()}
+              />
+              <ThemedText
+                style={[styles.statusText, { color: getStatusColor() }]}
+              >
                 {agent.status}
               </ThemedText>
             </View>
@@ -139,9 +157,14 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
           <ThemedText style={styles.modelName}>{agent.model}</ThemedText>
 
           {agent.status === "running" ? (
-            <Animated.View style={[styles.shimmerBar, { opacity: shimmerOpacity }]}>
+            <Animated.View
+              style={[styles.shimmerBar, { opacity: shimmerOpacity }]}
+            >
               <LinearGradient
-                colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+                colors={[
+                  Colors.dark.primaryGradientStart,
+                  Colors.dark.primaryGradientEnd,
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.shimmerGradient}
@@ -169,7 +192,7 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
           ) : null}
         </GlassCard>
       </Animated.View>
-    </ReanimatedView>
+    </ReanimatedAnimated.View>
   );
 }
 
@@ -177,7 +200,7 @@ export default function FocusScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
 
-  const { data: activeSwarms, isLoading } = useQuery<SwarmStatus[]>({
+  const { data: activeSwarms } = useQuery<SwarmStatus[]>({
     queryKey: ["/api/swarms/active"],
     refetchInterval: 1000,
   });
@@ -210,7 +233,10 @@ export default function FocusScreen() {
       ) : (
         <>
           <GlassCard
-            style={[styles.statusCard, { marginTop: headerHeight + Spacing.xl }]}
+            style={[
+              styles.statusCard,
+              { marginTop: headerHeight + Spacing.xl },
+            ]}
           >
             <View style={styles.progressHeader}>
               <ThemedText style={styles.progressLabel}>
@@ -222,10 +248,16 @@ export default function FocusScreen() {
             </View>
             <View style={styles.progressBar}>
               <LinearGradient
-                colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+                colors={[
+                  Colors.dark.primaryGradientStart,
+                  Colors.dark.primaryGradientEnd,
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${activeSwarm.progress}%` }]}
+                style={[
+                  styles.progressFill,
+                  { width: `${activeSwarm.progress}%` },
+                ]}
               />
             </View>
           </GlassCard>
@@ -233,7 +265,9 @@ export default function FocusScreen() {
           <FlatList
             data={activeSwarm.agents}
             keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => <AgentCard agent={item} index={index} />}
+            renderItem={({ item, index }) => (
+              <AgentCard agent={item} index={index} />
+            )}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: tabBarHeight + Spacing["3xl"] },

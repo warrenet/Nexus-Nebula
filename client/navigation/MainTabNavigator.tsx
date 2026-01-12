@@ -4,11 +4,11 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import MissionScreen from "@/screens/MissionScreen";
 import FocusScreen from "@/screens/FocusScreen";
 import TraceScreen from "@/screens/TraceScreen";
 import { useTheme } from "@/hooks/useTheme";
-import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { Colors } from "@/constants/theme";
 
 export type MainTabParamList = {
@@ -35,7 +35,10 @@ function TabIcon({
       <Feather name={name} size={size} color={color} />
       {focused ? (
         <LinearGradient
-          colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+          colors={[
+            Colors.dark.primaryGradientStart,
+            Colors.dark.primaryGradientEnd,
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.activeIndicator}
@@ -46,14 +49,22 @@ function TabIcon({
 }
 
 export default function MainTabNavigator() {
-  const { theme, isDark } = useTheme();
-  const screenOptions = useScreenOptions();
+  const { theme } = useTheme();
 
   return (
     <Tab.Navigator
       initialRouteName="MissionTab"
       screenOptions={{
-        ...screenOptions,
+        headerShown: true,
+        headerTintColor: Colors.dark.text,
+        headerTitleAlign: "center",
+        headerStyle: {
+          backgroundColor: Colors.dark.backgroundRoot,
+        },
+        headerTitleStyle: {
+          color: Colors.dark.text,
+          fontWeight: "600",
+        },
         tabBarActiveTintColor: Colors.dark.primaryGradientStart,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
@@ -91,8 +102,21 @@ export default function MainTabNavigator() {
           title: "Mission",
           headerTitle: "Mission Control",
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="target" color={color} size={size} focused={focused} />
+            <TabIcon
+              name="target"
+              color={color}
+              size={size}
+              focused={focused}
+            />
           ),
+          tabBarAccessibilityLabel: "Mission tab",
+        }}
+        listeners={{
+          tabPress: () => {
+            if (Platform.OS !== "web") {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          },
         }}
       />
       <Tab.Screen
@@ -102,8 +126,21 @@ export default function MainTabNavigator() {
           title: "Focus",
           headerTitle: "Swarm Status",
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="activity" color={color} size={size} focused={focused} />
+            <TabIcon
+              name="activity"
+              color={color}
+              size={size}
+              focused={focused}
+            />
           ),
+          tabBarAccessibilityLabel: "Focus tab",
+        }}
+        listeners={{
+          tabPress: () => {
+            if (Platform.OS !== "web") {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          },
         }}
       />
       <Tab.Screen
@@ -113,8 +150,21 @@ export default function MainTabNavigator() {
           title: "Trace",
           headerTitle: "Reasoning Chain",
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="git-branch" color={color} size={size} focused={focused} />
+            <TabIcon
+              name="git-branch"
+              color={color}
+              size={size}
+              focused={focused}
+            />
           ),
+          tabBarAccessibilityLabel: "Trace tab",
+        }}
+        listeners={{
+          tabPress: () => {
+            if (Platform.OS !== "web") {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          },
         }}
       />
     </Tab.Navigator>

@@ -34,10 +34,10 @@ export interface Iteration {
 
 export interface RedTeamFlag {
   flagId: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   categories: string[];
   explanation: string;
-  source: 'input' | 'output' | 'synthesis';
+  source: "input" | "output" | "synthesis";
   content: string;
 }
 
@@ -53,7 +53,7 @@ export interface Trace {
   costEstimate: number;
   actualCost: number;
   durationMs: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   error?: string;
 }
 
@@ -82,7 +82,7 @@ export interface CostEstimate {
 }
 
 export interface OpenRouterMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -96,13 +96,13 @@ export interface OpenRouterRequest {
 export interface OpenRouterResponse {
   id: string;
   model: string;
-  choices: Array<{
+  choices: {
     message: {
       role: string;
       content: string;
     };
     finish_reason: string;
-  }>;
+  }[];
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -112,7 +112,7 @@ export interface OpenRouterResponse {
 
 export interface SwarmAgent {
   id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   model: string;
   confidence?: number;
   response?: string;
@@ -121,7 +121,7 @@ export interface SwarmAgent {
 
 export interface SwarmStatus {
   traceId: string;
-  status: 'pending' | 'running' | 'synthesizing' | 'completed' | 'failed';
+  status: "pending" | "running" | "synthesizing" | "completed" | "failed";
   agents: SwarmAgent[];
   currentIteration: number;
   progress: number;

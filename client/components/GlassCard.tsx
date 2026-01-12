@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  Platform,
-  ViewStyle,
-  StyleProp,
-} from "react-native";
+import { View, StyleSheet, Platform, ViewStyle, StyleProp } from "react-native";
 import { BlurView } from "expo-blur";
 import { Colors, BorderRadius, Spacing } from "@/constants/theme";
 

@@ -20,7 +20,9 @@ export function HeaderTitle({ title, showBranding = false }: HeaderTitleProps) {
         />
         <View style={styles.textContainer}>
           <ThemedText style={styles.brandingTitle}>Nexus Nebula</ThemedText>
-          <ThemedText style={styles.brandingSubtitle}>The Rogue Bayes Engine</ThemedText>
+          <ThemedText style={styles.brandingSubtitle}>
+            The Rogue Bayes Engine
+          </ThemedText>
         </View>
       </View>
     );

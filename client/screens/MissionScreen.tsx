@@ -21,9 +21,10 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { apiRequest, getApiUrl } from "@/lib/query-client";
+import { apiRequest } from "@/lib/query-client";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { NebulaBackground } from "@/components/NebulaBackground";
+import { MissionTemplates } from "@/components/MissionTemplates";
 import type { MainTabParamList } from "@/navigation/MainTabNavigator";
 
 interface MissionResponse {
@@ -85,7 +86,7 @@ export default function MissionScreen() {
         mission: text,
         swarmSize: 8,
       });
-      const data = await response.json() as CostEstimate;
+      const data = (await response.json()) as CostEstimate;
       setCostEstimate(data);
     } catch {
       setCostEstimate(null);
@@ -115,7 +116,7 @@ export default function MissionScreen() {
             duration: 800,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
       animation.start();
     } else {
@@ -145,16 +146,21 @@ export default function MissionScreen() {
         }
       }
     },
-    [handleExecute]
+    [handleExecute],
   );
 
   const isEmpty = mission.trim().length === 0;
   const canExecute = mission.trim().length >= 5 && !executeMutation.isPending;
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors.dark.backgroundRoot }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: Colors.dark.backgroundRoot },
+      ]}
+    >
       {/* GPU Nebula - Only active when this tab is focused */}
-      {Platform.OS === 'web' && <NebulaBackground isActive={isFocused} />}
+      {Platform.OS === "web" && <NebulaBackground isActive={isFocused} />}
       <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.scrollContent,
@@ -171,6 +177,7 @@ export default function MissionScreen() {
               source={require("../../assets/images/empty-mission.png")}
               style={styles.emptyImage}
               resizeMode="contain"
+              accessibilityLabel="Mission control illustration"
             />
             <ThemedText style={styles.emptyTitle}>Awaiting Mission</ThemedText>
             <ThemedText style={styles.emptySubtitle}>
@@ -178,6 +185,8 @@ export default function MissionScreen() {
             </ThemedText>
           </View>
         ) : null}
+
+        {isEmpty ? <MissionTemplates onSelectTemplate={setMission} /> : null}
 
         <GlassCard style={styles.inputCard}>
           <ThemedText style={styles.inputLabel}>Mission Objective</ThemedText>
@@ -192,17 +201,25 @@ export default function MissionScreen() {
             textAlignVertical="top"
             onKeyPress={handleKeyPress}
             testID="input-mission"
+            accessibilityLabel="Mission objective input"
+            accessibilityHint="Enter your mission description here. Press Control Enter to execute."
           />
 
           {costEstimate ? (
             <View style={styles.costEstimate}>
-              <Feather name="dollar-sign" size={14} color={Colors.dark.textSecondary} />
+              <Feather
+                name="dollar-sign"
+                size={14}
+                color={Colors.dark.textSecondary}
+              />
               <ThemedText style={styles.costText}>
                 Est. ${costEstimate.totalCost.toFixed(4)}
               </ThemedText>
               {!costEstimate.withinBudget ? (
                 <View style={styles.overBudgetBadge}>
-                  <ThemedText style={styles.overBudgetText}>Over Budget</ThemedText>
+                  <ThemedText style={styles.overBudgetText}>
+                    Over Budget
+                  </ThemedText>
                 </View>
               ) : null}
             </View>
@@ -211,7 +228,11 @@ export default function MissionScreen() {
 
         {executeMutation.isError ? (
           <GlassCard style={styles.errorCard}>
-            <Feather name="alert-triangle" size={20} color={Colors.dark.error} />
+            <Feather
+              name="alert-triangle"
+              size={20}
+              color={Colors.dark.error}
+            />
             <ThemedText style={styles.errorText}>
               {executeMutation.error instanceof Error
                 ? executeMutation.error.message
@@ -221,7 +242,9 @@ export default function MissionScreen() {
         ) : null}
       </KeyboardAwareScrollViewCompat>
 
-      <View style={[styles.buttonContainer, { bottom: tabBarHeight + Spacing.lg }]}>
+      <View
+        style={[styles.buttonContainer, { bottom: tabBarHeight + Spacing.lg }]}
+      >
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <Pressable
             onPress={handleExecute}
@@ -236,7 +259,10 @@ export default function MissionScreen() {
             <LinearGradient
               colors={
                 canExecute
-                  ? [Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]
+                  ? [
+                      Colors.dark.primaryGradientStart,
+                      Colors.dark.primaryGradientEnd,
+                    ]
                   : ["#3a3a4a", "#2a2a3a"]
               }
               start={{ x: 0, y: 0 }}
@@ -244,7 +270,10 @@ export default function MissionScreen() {
               style={styles.executeButtonGradient}
             >
               {executeMutation.isPending ? (
-                <ActivityIndicator color={Colors.dark.buttonText} size="small" />
+                <ActivityIndicator
+                  color={Colors.dark.buttonText}
+                  size="small"
+                />
               ) : (
                 <Feather name="zap" size={20} color={Colors.dark.buttonText} />
               )}

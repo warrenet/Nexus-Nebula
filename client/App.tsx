@@ -11,6 +11,13 @@ import { queryClient } from "@/lib/query-client";
 
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UpdateBanner } from "@/components/UpdateBanner";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { ToastProvider } from "@/components/Toast";
+import {
+  KeyboardShortcutsModal,
+  useKeyboardShortcuts,
+} from "@/components/KeyboardShortcuts";
 import { Colors } from "@/constants/theme";
 
 const NexusTheme = {
@@ -26,6 +33,25 @@ const NexusTheme = {
   },
 };
 
+function AppContent() {
+  const shortcuts = useKeyboardShortcuts();
+
+  return (
+    <>
+      <NavigationContainer theme={NexusTheme}>
+        <UpdateBanner />
+        <OfflineBanner />
+        <RootStackNavigator />
+      </NavigationContainer>
+      <StatusBar style="light" />
+      <KeyboardShortcutsModal
+        visible={shortcuts.visible}
+        onClose={shortcuts.close}
+      />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -33,10 +59,9 @@ export default function App() {
         <SafeAreaProvider>
           <GestureHandlerRootView style={styles.root}>
             <KeyboardProvider>
-              <NavigationContainer theme={NexusTheme}>
-                <RootStackNavigator />
-              </NavigationContainer>
-              <StatusBar style="light" />
+              <ToastProvider>
+                <AppContent />
+              </ToastProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </SafeAreaProvider>

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from "crypto";
 import type {
   SwarmConfig,
   AgentResponse,
@@ -10,9 +10,9 @@ import type {
   SwarmStatus,
   SwarmAgent,
   RedTeamFlag,
-} from '../types';
-import { scanContent, shouldBlockExecution, sanitizeForTrace } from './redteam';
-import { saveTrace, updateTrace, getTrace } from './trace_store';
+} from "../types";
+import { scanContent, shouldBlockExecution, sanitizeForTrace } from "./redteam";
+import { saveTrace } from "./trace_store";
 import {
   incrementMissionsTotal,
   incrementMissionsSuccess,
@@ -21,17 +21,17 @@ import {
   addCost,
   incrementRedTeamFlags,
   recordRequestDuration,
-} from './metrics';
-import { swarmEventEmitter } from './SwarmEventEmitter';
+} from "./metrics";
+import { swarmEventEmitter } from "./SwarmEventEmitter";
 
 const DEFAULT_CONFIG: SwarmConfig = {
   startAgents: 8,
   expandAgents: 12,
   maxAgents: 20,
-  freeModel: 'google/gemini-2.0-flash-exp:free',
-  synthesisModel: 'anthropic/claude-3.5-sonnet',
-  fallbackModel: 'openai/gpt-4o',
-  maxBudget: 2.00,
+  freeModel: "google/gemini-2.0-flash-exp:free",
+  synthesisModel: "anthropic/claude-3.5-sonnet",
+  fallbackModel: "openai/gpt-4o",
+  maxBudget: 2.0,
   throttleMs: 6000,
   maxRetries: 5,
   baseBackoffMs: 1000,
@@ -41,22 +41,22 @@ const DEFAULT_CONFIG: SwarmConfig = {
 // Multi-turn critique configuration (2026 Sovereign Calibration)
 const CONSENSUS_THRESHOLD = 0.92; // Sweet spot for speed vs rigor
 const MAX_CRITIQUE_ITERATIONS = 5;
-const REVIEWER_MODEL = 'anthropic/claude-3.5-sonnet';
+const REVIEWER_MODEL = "anthropic/claude-3.5-sonnet";
 
 // Guardian Agent configuration - prevents hallucination loops and budget bleeding
 const MIN_CONSENSUS_IMPROVEMENT = 0.02; // Minimum improvement required per iteration
 const GUARDIAN_PATIENCE = 2; // Number of stagnant iterations before graceful fail
 
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  'google/gemini-2.0-flash-exp:free': { input: 0, output: 0 },
-  'anthropic/claude-3.5-sonnet': { input: 0.003, output: 0.015 },
-  'openai/gpt-4o': { input: 0.005, output: 0.015 },
+  "google/gemini-2.0-flash-exp:free": { input: 0, output: 0 },
+  "anthropic/claude-3.5-sonnet": { input: 0.003, output: 0.015 },
+  "openai/gpt-4o": { input: 0.005, output: 0.015 },
 };
 
 const activeSwarms: Map<string, SwarmStatus> = new Map();
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function estimateTokens(text: string): number {
@@ -66,26 +66,30 @@ function estimateTokens(text: string): number {
 export function estimateCost(
   mission: string,
   swarmSize: number,
-  config: SwarmConfig = DEFAULT_CONFIG
+  config: SwarmConfig = DEFAULT_CONFIG,
 ): CostEstimate {
   const systemPrompt = `You are a Bayesian reasoning agent in a swarm. Analyze the mission and provide your perspective with a confidence score (0-1).`;
   const inputTokens = estimateTokens(systemPrompt + mission);
   const expectedOutputTokens = 500;
 
-  const swarmModelCost = MODEL_COSTS[config.freeModel] || { input: 0, output: 0 };
-  const synthesisModelCost = MODEL_COSTS[config.synthesisModel] || MODEL_COSTS['anthropic/claude-3.5-sonnet'];
+  const swarmModelCost = MODEL_COSTS[config.freeModel] || {
+    input: 0,
+    output: 0,
+  };
+  const synthesisModelCost =
+    MODEL_COSTS[config.synthesisModel] ||
+    MODEL_COSTS["anthropic/claude-3.5-sonnet"];
 
-  const swarmCost = swarmSize * (
-    (inputTokens * swarmModelCost.input / 1000) +
-    (expectedOutputTokens * swarmModelCost.output / 1000)
-  );
+  const swarmCost =
+    swarmSize *
+    ((inputTokens * swarmModelCost.input) / 1000 +
+      (expectedOutputTokens * swarmModelCost.output) / 1000);
 
-  const synthesisInputTokens = inputTokens + (swarmSize * expectedOutputTokens);
+  const synthesisInputTokens = inputTokens + swarmSize * expectedOutputTokens;
   const synthesisOutputTokens = 1000;
-  const synthesisCost = (
-    (synthesisInputTokens * synthesisModelCost.input / 1000) +
-    (synthesisOutputTokens * synthesisModelCost.output / 1000)
-  );
+  const synthesisCost =
+    (synthesisInputTokens * synthesisModelCost.input) / 1000 +
+    (synthesisOutputTokens * synthesisModelCost.output) / 1000;
 
   const totalCost = swarmCost + synthesisCost;
 
@@ -102,46 +106,55 @@ export function estimateCost(
 async function callOpenRouter(
   request: OpenRouterRequest,
   retryCount = 0,
-  config: SwarmConfig = DEFAULT_CONFIG
+  config: SwarmConfig = DEFAULT_CONFIG,
 ): Promise<OpenRouterResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY environment variable is not set');
+    throw new Error("OPENROUTER_API_KEY environment variable is not set");
   }
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://nexus-nebula.replit.app',
-        'X-Title': 'Nexus Nebula: The Rogue Bayes Engine',
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.REPLIT_DEV_DOMAIN
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+            : "https://nexus-nebula.replit.app",
+          "X-Title": "Nexus Nebula: The Rogue Bayes Engine",
+        },
+        body: JSON.stringify(request),
       },
-      body: JSON.stringify(request),
-    });
+    );
 
     if (response.status === 429) {
       if (retryCount >= config.maxRetries) {
-        throw new Error('Rate limit exceeded after max retries');
+        throw new Error("Rate limit exceeded after max retries");
       }
       const backoffMs = Math.min(
         config.baseBackoffMs * Math.pow(2, retryCount),
-        config.maxBackoffMs
+        config.maxBackoffMs,
       );
-      console.log(`Rate limited, backing off for ${backoffMs}ms (retry ${retryCount + 1})`);
+      console.log(
+        `Rate limited, backing off for ${backoffMs}ms (retry ${retryCount + 1})`,
+      );
       await sleep(backoffMs);
       return callOpenRouter(request, retryCount + 1, config);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      throw new Error(
+        `OpenRouter API error: ${response.status} - ${errorText}`,
+      );
     }
 
-    return await response.json() as OpenRouterResponse;
+    return (await response.json()) as OpenRouterResponse;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Rate limit')) {
+    if (error instanceof Error && error.message.includes("Rate limit")) {
       throw error;
     }
     if (retryCount < config.maxRetries) {
@@ -158,7 +171,7 @@ async function runSwarmAgent(
   agentId: string,
   mission: string,
   traceId: string,
-  config: SwarmConfig = DEFAULT_CONFIG
+  config: SwarmConfig = DEFAULT_CONFIG,
 ): Promise<AgentResponse> {
   const startTime = Date.now();
 
@@ -173,17 +186,21 @@ Where X.XX is a number between 0.00 and 1.00 representing how confident you are 
 Be concise but thorough. Explore angles that other agents might miss.`;
 
   try {
-    const response = await callOpenRouter({
-      model: config.freeModel,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: mission },
-      ],
-      temperature: 0.8 + (Math.random() * 0.4),
-      max_tokens: 600,
-    }, 0, config);
+    const response = await callOpenRouter(
+      {
+        model: config.freeModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: mission },
+        ],
+        temperature: 0.8 + Math.random() * 0.4,
+        max_tokens: 600,
+      },
+      0,
+      config,
+    );
 
-    const content = response.choices[0]?.message?.content || '';
+    const content = response.choices[0]?.message?.content || "";
     const confidenceMatch = content.match(/\[CONFIDENCE:\s*([\d.]+)\]/i);
     const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5;
 
@@ -192,7 +209,7 @@ Be concise but thorough. Explore angles that other agents might miss.`;
     return {
       agentId,
       model: config.freeModel,
-      response: content.replace(/\[CONFIDENCE:\s*[\d.]+\]/gi, '').trim(),
+      response: content.replace(/\[CONFIDENCE:\s*[\d.]+\]/gi, "").trim(),
       confidence: Math.min(1, Math.max(0, confidence)),
       latencyMs,
       tokens: {
@@ -205,11 +222,11 @@ Be concise but thorough. Explore angles that other agents might miss.`;
     return {
       agentId,
       model: config.freeModel,
-      response: '',
+      response: "",
       confidence: 0,
       latencyMs,
       tokens: { input: 0, output: 0 },
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -218,15 +235,15 @@ async function runSynthesis(
   mission: string,
   agentResponses: AgentResponse[],
   posteriorWeights: Record<string, number>,
-  config: SwarmConfig = DEFAULT_CONFIG
+  config: SwarmConfig = DEFAULT_CONFIG,
 ): Promise<{ content: string; tokens: { input: number; output: number } }> {
   const weightedResponses = agentResponses
-    .filter(r => !r.error)
-    .map(r => {
+    .filter((r) => !r.error)
+    .map((r) => {
       const weight = posteriorWeights[r.agentId] || 0;
       return `[Agent ${r.agentId}] (Weight: ${weight.toFixed(3)}, Confidence: ${r.confidence.toFixed(2)})\n${r.response}`;
     })
-    .join('\n\n---\n\n');
+    .join("\n\n---\n\n");
 
   const synthesisPrompt = `You are the Final Synthesis Agent for Nexus Nebula: The Rogue Bayes Engine.
 
@@ -249,44 +266,52 @@ Provide your synthesis now:`;
 
   let model = config.synthesisModel;
   try {
-    const response = await callOpenRouter({
-      model,
-      messages: [
-        { role: 'user', content: synthesisPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-    }, 0, config);
+    const response = await callOpenRouter(
+      {
+        model,
+        messages: [{ role: "user", content: synthesisPrompt }],
+        temperature: 0.7,
+        max_tokens: 1500,
+      },
+      0,
+      config,
+    );
 
     return {
-      content: response.choices[0]?.message?.content || 'Synthesis failed',
+      content: response.choices[0]?.message?.content || "Synthesis failed",
       tokens: {
         input: response.usage?.prompt_tokens || 0,
         output: response.usage?.completion_tokens || 0,
       },
     };
   } catch (error) {
-    console.log(`Synthesis failed with ${model}, trying fallback: ${config.fallbackModel}`);
+    console.log(
+      `Synthesis failed with ${model}, trying fallback: ${config.fallbackModel}`,
+    );
     model = config.fallbackModel;
     try {
-      const response = await callOpenRouter({
-        model,
-        messages: [
-          { role: 'user', content: synthesisPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      }, 0, config);
+      const response = await callOpenRouter(
+        {
+          model,
+          messages: [{ role: "user", content: synthesisPrompt }],
+          temperature: 0.7,
+          max_tokens: 1500,
+        },
+        0,
+        config,
+      );
 
       return {
-        content: response.choices[0]?.message?.content || 'Synthesis failed',
+        content: response.choices[0]?.message?.content || "Synthesis failed",
         tokens: {
           input: response.usage?.prompt_tokens || 0,
           output: response.usage?.completion_tokens || 0,
         },
       };
     } catch (fallbackError) {
-      throw new Error(`Both synthesis models failed: ${error}, ${fallbackError}`);
+      throw new Error(
+        `Both synthesis models failed: ${error}, ${fallbackError}`,
+      );
     }
   }
 }
@@ -300,20 +325,26 @@ async function runCritiqueRound(
   agentResponses: AgentResponse[],
   critiqueIteration: number,
   traceId: string,
-  config: SwarmConfig = DEFAULT_CONFIG
-): Promise<{ critiquedResponses: AgentResponse[]; consensusScore: number; critiqueTokens: { input: number; output: number } }> {
-
+  config: SwarmConfig = DEFAULT_CONFIG,
+): Promise<{
+  critiquedResponses: AgentResponse[];
+  consensusScore: number;
+  critiqueTokens: { input: number; output: number };
+}> {
   swarmEventEmitter.emitSwarmEvent({
     traceId,
-    type: 'critique_start',
+    type: "critique_start",
     data: { iteration: critiqueIteration, agentCount: agentResponses.length },
     timestamp: Date.now(),
   });
 
   const responseSummaries = agentResponses
-    .filter(r => !r.error)
-    .map(r => `[${r.agentId}] (Confidence: ${r.confidence.toFixed(2)})\n${r.response.substring(0, 500)}${r.response.length > 500 ? '...' : ''}`)
-    .join('\n\n---\n\n');
+    .filter((r) => !r.error)
+    .map(
+      (r) =>
+        `[${r.agentId}] (Confidence: ${r.confidence.toFixed(2)})\n${r.response.substring(0, 500)}${r.response.length > 500 ? "..." : ""}`,
+    )
+    .join("\n\n---\n\n");
 
   const critiquePrompt = `You are the Bayesian Reviewer for "Nexus Nebula: The Rogue Bayes Engine".
 
@@ -343,14 +374,18 @@ After all agents, provide:
 Where CONSENSUS score is 0.00-1.00 indicating overall swarm agreement level.`;
 
   try {
-    const response = await callOpenRouter({
-      model: REVIEWER_MODEL,
-      messages: [{ role: 'user', content: critiquePrompt }],
-      temperature: 0.4,
-      max_tokens: 800,
-    }, 0, config);
+    const response = await callOpenRouter(
+      {
+        model: REVIEWER_MODEL,
+        messages: [{ role: "user", content: critiquePrompt }],
+        temperature: 0.4,
+        max_tokens: 800,
+      },
+      0,
+      config,
+    );
 
-    const critiqueContent = response.choices[0]?.message?.content || '';
+    const critiqueContent = response.choices[0]?.message?.content || "";
     const critiqueTokens = {
       input: response.usage?.prompt_tokens || 0,
       output: response.usage?.completion_tokens || 0,
@@ -358,16 +393,16 @@ Where CONSENSUS score is 0.00-1.00 indicating overall swarm agreement level.`;
 
     // Stream the critique as a "thought"
     swarmEventEmitter.emitThought({
-      agentId: 'reviewer',
+      agentId: "reviewer",
       traceId,
-      type: 'critique',
+      type: "critique",
       content: critiqueContent,
       timestamp: Date.now(),
     });
 
     // Parse refined confidence scores
-    const critiquedResponses = agentResponses.map(agent => {
-      const pattern = new RegExp(`${agent.agentId}:\\s*([\\d.]+)`, 'i');
+    const critiquedResponses = agentResponses.map((agent) => {
+      const pattern = new RegExp(`${agent.agentId}:\\s*([\\d.]+)`, "i");
       const match = critiqueContent.match(pattern);
       const refinedConfidence = match ? parseFloat(match[1]) : agent.confidence;
 
@@ -383,31 +418,42 @@ Where CONSENSUS score is 0.00-1.00 indicating overall swarm agreement level.`;
 
     swarmEventEmitter.emitSwarmEvent({
       traceId,
-      type: 'critique_complete',
+      type: "critique_complete",
       data: { iteration: critiqueIteration, consensusScore },
       timestamp: Date.now(),
     });
 
-    return { critiquedResponses, consensusScore: Math.min(1, Math.max(0, consensusScore)), critiqueTokens };
+    return {
+      critiquedResponses,
+      consensusScore: Math.min(1, Math.max(0, consensusScore)),
+      critiqueTokens,
+    };
   } catch (error) {
-    console.error('Critique round failed:', error);
+    console.error("Critique round failed:", error);
     // Fallback: calculate consensus from existing confidences
-    const avgConfidence = agentResponses.reduce((sum, r) => sum + r.confidence, 0) / agentResponses.length;
+    const avgConfidence =
+      agentResponses.reduce((sum, r) => sum + r.confidence, 0) /
+      agentResponses.length;
     return {
       critiquedResponses: agentResponses,
       consensusScore: avgConfidence,
-      critiqueTokens: { input: 0, output: 0 }
+      critiqueTokens: { input: 0, output: 0 },
     };
   }
 }
 
-function calculatePosteriorWeights(responses: AgentResponse[]): Record<string, number> {
-  const validResponses = responses.filter(r => !r.error && r.confidence > 0);
+function calculatePosteriorWeights(
+  responses: AgentResponse[],
+): Record<string, number> {
+  const validResponses = responses.filter((r) => !r.error && r.confidence > 0);
   if (validResponses.length === 0) {
     return {};
   }
 
-  const totalConfidence = validResponses.reduce((sum, r) => sum + r.confidence, 0);
+  const totalConfidence = validResponses.reduce(
+    (sum, r) => sum + r.confidence,
+    0,
+  );
   const weights: Record<string, number> = {};
 
   for (const response of validResponses) {
@@ -427,19 +473,23 @@ function calculatePosteriorWeights(responses: AgentResponse[]): Record<string, n
 function calculateActualCost(
   agentResponses: AgentResponse[],
   synthesisTokens: { input: number; output: number },
-  config: SwarmConfig = DEFAULT_CONFIG
+  config: SwarmConfig = DEFAULT_CONFIG,
 ): number {
   let totalCost = 0;
 
   const swarmCost = MODEL_COSTS[config.freeModel] || { input: 0, output: 0 };
   for (const response of agentResponses) {
-    totalCost += (response.tokens.input * swarmCost.input / 1000) +
-      (response.tokens.output * swarmCost.output / 1000);
+    totalCost +=
+      (response.tokens.input * swarmCost.input) / 1000 +
+      (response.tokens.output * swarmCost.output) / 1000;
   }
 
-  const synthesisCost = MODEL_COSTS[config.synthesisModel] || MODEL_COSTS['anthropic/claude-3.5-sonnet'];
-  totalCost += (synthesisTokens.input * synthesisCost.input / 1000) +
-    (synthesisTokens.output * synthesisCost.output / 1000);
+  const synthesisCost =
+    MODEL_COSTS[config.synthesisModel] ||
+    MODEL_COSTS["anthropic/claude-3.5-sonnet"];
+  totalCost +=
+    (synthesisTokens.input * synthesisCost.input) / 1000 +
+    (synthesisTokens.output * synthesisCost.output) / 1000;
 
   return totalCost;
 }
@@ -455,7 +505,7 @@ export function getAllActiveSwarms(): SwarmStatus[] {
 export async function executeMission(
   mission: string,
   swarmSize?: number,
-  maxBudget?: number
+  maxBudget?: number,
 ): Promise<Trace> {
   const config: SwarmConfig = {
     ...DEFAULT_CONFIG,
@@ -464,7 +514,7 @@ export async function executeMission(
 
   const agentCount = Math.min(
     Math.max(swarmSize ?? config.startAgents, 1),
-    config.maxAgents
+    config.maxAgents,
   );
 
   const traceId = randomUUID();
@@ -472,7 +522,7 @@ export async function executeMission(
 
   incrementMissionsTotal();
 
-  const inputFlags = scanContent(mission, 'input');
+  const inputFlags = scanContent(mission, "input");
   if (inputFlags.length > 0) {
     incrementRedTeamFlags(inputFlags.length);
   }
@@ -486,21 +536,25 @@ export async function executeMission(
       branchScores: {},
       redTeamFlags: inputFlags,
       finalPosteriorWeights: {},
-      synthesisResult: '',
+      synthesisResult: "",
       costEstimate: 0,
       actualCost: 0,
       durationMs: Date.now() - startTime,
-      status: 'failed',
-      error: 'Mission blocked by safety system',
+      status: "failed",
+      error: "Mission blocked by safety system",
     };
     saveTrace(trace);
     incrementMissionsFailed();
-    throw new Error('Mission blocked by safety system due to content policy violation');
+    throw new Error(
+      "Mission blocked by safety system due to content policy violation",
+    );
   }
 
   const costEstimate = estimateCost(mission, agentCount, config);
   if (!costEstimate.withinBudget) {
-    throw new Error(`Estimated cost $${costEstimate.totalCost.toFixed(4)} exceeds budget limit $${config.maxBudget}`);
+    throw new Error(
+      `Estimated cost $${costEstimate.totalCost.toFixed(4)} exceeds budget limit $${config.maxBudget}`,
+    );
   }
 
   const trace: Trace = {
@@ -511,11 +565,11 @@ export async function executeMission(
     branchScores: {},
     redTeamFlags: inputFlags,
     finalPosteriorWeights: {},
-    synthesisResult: '',
+    synthesisResult: "",
     costEstimate: costEstimate.totalCost,
     actualCost: 0,
     durationMs: 0,
-    status: 'running',
+    status: "running",
   };
   saveTrace(trace);
 
@@ -523,18 +577,18 @@ export async function executeMission(
   for (let i = 0; i < agentCount; i++) {
     agents.push({
       id: `agent-${i + 1}`,
-      status: 'pending',
+      status: "pending",
       model: config.freeModel,
     });
   }
 
   const swarmStatus: SwarmStatus = {
     traceId,
-    status: 'running',
+    status: "running",
     agents,
     currentIteration: 1,
     progress: 0,
-    message: 'Initializing swarm agents...',
+    message: "Initializing swarm agents...",
   };
   activeSwarms.set(traceId, swarmStatus);
   setSwarmAgentsActive(activeSwarms.size);
@@ -545,7 +599,7 @@ export async function executeMission(
     for (let i = 0; i < agentCount; i++) {
       const agentId = `agent-${i + 1}`;
 
-      swarmStatus.agents[i].status = 'running';
+      swarmStatus.agents[i].status = "running";
 
       const delayedPromise = (async () => {
         if (i > 0) {
@@ -553,15 +607,23 @@ export async function executeMission(
         }
         const result = await runSwarmAgent(agentId, mission, traceId, config);
 
-        const agentIndex = swarmStatus.agents.findIndex(a => a.id === agentId);
+        const agentIndex = swarmStatus.agents.findIndex(
+          (a) => a.id === agentId,
+        );
         if (agentIndex !== -1) {
-          swarmStatus.agents[agentIndex].status = result.error ? 'failed' : 'completed';
+          swarmStatus.agents[agentIndex].status = result.error
+            ? "failed"
+            : "completed";
           swarmStatus.agents[agentIndex].confidence = result.confidence;
           swarmStatus.agents[agentIndex].latencyMs = result.latencyMs;
         }
 
         swarmStatus.progress = Math.floor(
-          (swarmStatus.agents.filter(a => a.status === 'completed' || a.status === 'failed').length / agentCount) * 80
+          (swarmStatus.agents.filter(
+            (a) => a.status === "completed" || a.status === "failed",
+          ).length /
+            agentCount) *
+            80,
         );
         swarmStatus.message = `Processing agent ${i + 1} of ${agentCount}...`;
 
@@ -576,7 +638,7 @@ export async function executeMission(
     const outputFlags: RedTeamFlag[] = [];
     for (const response of agentResponses) {
       if (response.response) {
-        const flags = scanContent(response.response, 'output');
+        const flags = scanContent(response.response, "output");
         outputFlags.push(...flags);
       }
     }
@@ -594,26 +656,30 @@ export async function executeMission(
     // Guardian Agent tracking - prevents hallucination loops and budget bleeding
     let previousConsensusScore = 0;
     let stagnantIterations = 0;
-    let guardianTriggered = false;
+    let _guardianTriggered = false;
 
     swarmEventEmitter.emitSwarmEvent({
       traceId,
-      type: 'consensus_update',
+      type: "consensus_update",
       data: { iteration: 0, consensusScore: 0, threshold: CONSENSUS_THRESHOLD },
       timestamp: Date.now(),
     });
 
-    while (consensusScore < CONSENSUS_THRESHOLD && critiqueIteration < MAX_CRITIQUE_ITERATIONS) {
+    while (
+      consensusScore < CONSENSUS_THRESHOLD &&
+      critiqueIteration < MAX_CRITIQUE_ITERATIONS
+    ) {
       critiqueIteration++;
       swarmStatus.message = `Critique round ${critiqueIteration}/${MAX_CRITIQUE_ITERATIONS}...`;
-      swarmStatus.progress = 60 + Math.floor((critiqueIteration / MAX_CRITIQUE_ITERATIONS) * 20);
+      swarmStatus.progress =
+        60 + Math.floor((critiqueIteration / MAX_CRITIQUE_ITERATIONS) * 20);
 
       const critiqueResult = await runCritiqueRound(
         mission,
         currentResponses,
         critiqueIteration,
         traceId,
-        config
+        config,
       );
 
       currentResponses = critiqueResult.critiquedResponses;
@@ -625,15 +691,25 @@ export async function executeMission(
       const improvement = consensusScore - previousConsensusScore;
       if (improvement < MIN_CONSENSUS_IMPROVEMENT && critiqueIteration > 1) {
         stagnantIterations++;
-        console.log(`Guardian Agent: Stagnant iteration ${stagnantIterations}/${GUARDIAN_PATIENCE} (improvement: ${improvement.toFixed(4)})`);
+        console.log(
+          `Guardian Agent: Stagnant iteration ${stagnantIterations}/${GUARDIAN_PATIENCE} (improvement: ${improvement.toFixed(4)})`,
+        );
 
         if (stagnantIterations >= GUARDIAN_PATIENCE) {
-          console.log(`Guardian Agent: Triggering graceful fail - hallucination loop detected. Saving budget.`);
-          guardianTriggered = true;
+          console.log(
+            `Guardian Agent: Triggering graceful fail - hallucination loop detected. Saving budget.`,
+          );
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          _guardianTriggered = true;
           swarmEventEmitter.emitSwarmEvent({
             traceId,
-            type: 'consensus_update',
-            data: { iteration: critiqueIteration, consensusScore, threshold: CONSENSUS_THRESHOLD, guardianFail: true },
+            type: "consensus_update",
+            data: {
+              iteration: critiqueIteration,
+              consensusScore,
+              threshold: CONSENSUS_THRESHOLD,
+              guardianFail: true,
+            },
             timestamp: Date.now(),
           });
           break; // Exit early to save budget
@@ -656,15 +732,23 @@ export async function executeMission(
 
       swarmEventEmitter.emitSwarmEvent({
         traceId,
-        type: 'consensus_update',
-        data: { iteration: critiqueIteration, consensusScore, threshold: CONSENSUS_THRESHOLD },
+        type: "consensus_update",
+        data: {
+          iteration: critiqueIteration,
+          consensusScore,
+          threshold: CONSENSUS_THRESHOLD,
+        },
         timestamp: Date.now(),
       });
 
-      console.log(`Critique round ${critiqueIteration}: consensus = ${consensusScore.toFixed(3)}`);
+      console.log(
+        `Critique round ${critiqueIteration}: consensus = ${consensusScore.toFixed(3)}`,
+      );
 
       if (consensusScore >= CONSENSUS_THRESHOLD) {
-        console.log(`Consensus threshold ${CONSENSUS_THRESHOLD} reached after ${critiqueIteration} rounds`);
+        console.log(
+          `Consensus threshold ${CONSENSUS_THRESHOLD} reached after ${critiqueIteration} rounds`,
+        );
         break;
       }
     }
@@ -672,13 +756,18 @@ export async function executeMission(
     const finalPosteriorWeights = calculatePosteriorWeights(currentResponses);
     trace.finalPosteriorWeights = finalPosteriorWeights;
 
-    swarmStatus.status = 'synthesizing';
+    swarmStatus.status = "synthesizing";
     swarmStatus.progress = 85;
-    swarmStatus.message = 'Synthesizing swarm insights...';
+    swarmStatus.message = "Synthesizing swarm insights...";
 
-    const synthesis = await runSynthesis(mission, currentResponses, finalPosteriorWeights, config);
+    const synthesis = await runSynthesis(
+      mission,
+      currentResponses,
+      finalPosteriorWeights,
+      config,
+    );
 
-    const synthesisFlags = scanContent(synthesis.content, 'synthesis');
+    const synthesisFlags = scanContent(synthesis.content, "synthesis");
     if (synthesisFlags.length > 0) {
       incrementRedTeamFlags(synthesisFlags.length);
       trace.redTeamFlags.push(...synthesisFlags);
@@ -689,21 +778,25 @@ export async function executeMission(
       input: synthesis.tokens.input + totalCritiqueTokens.input,
       output: synthesis.tokens.output + totalCritiqueTokens.output,
     };
-    const actualCost = calculateActualCost(currentResponses, combinedSynthesisTokens, config);
+    const actualCost = calculateActualCost(
+      currentResponses,
+      combinedSynthesisTokens,
+      config,
+    );
     addCost(actualCost);
 
     trace.synthesisResult = sanitizeForTrace(synthesis.content);
     trace.actualCost = actualCost;
     trace.durationMs = Date.now() - startTime;
-    trace.status = 'completed';
+    trace.status = "completed";
 
     saveTrace(trace);
     recordRequestDuration(trace.durationMs);
     incrementMissionsSuccess();
 
-    swarmStatus.status = 'completed';
+    swarmStatus.status = "completed";
     swarmStatus.progress = 100;
-    swarmStatus.message = 'Mission complete!';
+    swarmStatus.message = "Mission complete!";
 
     setTimeout(() => {
       activeSwarms.delete(traceId);
@@ -712,12 +805,12 @@ export async function executeMission(
 
     return trace;
   } catch (error) {
-    trace.status = 'failed';
-    trace.error = error instanceof Error ? error.message : 'Unknown error';
+    trace.status = "failed";
+    trace.error = error instanceof Error ? error.message : "Unknown error";
     trace.durationMs = Date.now() - startTime;
     saveTrace(trace);
 
-    swarmStatus.status = 'failed';
+    swarmStatus.status = "failed";
     swarmStatus.message = trace.error;
 
     incrementMissionsFailed();

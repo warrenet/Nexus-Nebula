@@ -1,15 +1,17 @@
 import React from "react";
-import { createNativeBottomTabNavigator } from "@react-navigation/bottom-tabs/unstable";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Feather } from "@expo/vector-icons";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
+import { Colors } from "@/constants/theme";
 
 export type MainTabParamList = {
   HomeTab: undefined;
   ProfileTab: undefined;
 };
 
-const Tab = createNativeBottomTabNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator26() {
   return (
@@ -17,6 +19,8 @@ export default function MainTabNavigator26() {
       initialRouteName="HomeTab"
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: Colors.dark.primaryGradientStart,
+        tabBarInactiveTintColor: Colors.dark.textMuted,
       }}
     >
       <Tab.Screen
@@ -24,12 +28,9 @@ export default function MainTabNavigator26() {
         component={HomeStackNavigator}
         options={{
           title: "Home",
-          icon: {
-            sfSymbolName: "house",
-          },
-          selectedIcon: {
-            sfSymbolName: "house.fill",
-          },
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="home" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -37,12 +38,9 @@ export default function MainTabNavigator26() {
         component={ProfileStackNavigator}
         options={{
           title: "Profile",
-          icon: {
-            sfSymbolName: "person",
-          },
-          selectedIcon: {
-            sfSymbolName: "person.fill",
-          },
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="user" size={size} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>

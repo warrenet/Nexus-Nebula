@@ -11,101 +11,107 @@ import { getTrace, listTraces } from "./services/trace_store";
 import { formatPrometheusMetrics } from "./services/metrics";
 import { swarmEventEmitter } from "./services/SwarmEventEmitter";
 import type { MissionRequest } from "./types";
+import { missionRateLimiter } from "./middleware/rateLimiter";
 
 const wsClients: Set<WebSocket> = new Set();
 
 // Map to track active subscriptions for cleanup
 const clientSubscriptions: Map<WebSocket, (() => void)[]> = new Map();
 
-function broadcastSwarmUpdate(traceId: string): void {
-  const status = getSwarmStatus(traceId);
-  if (!status) return;
-
-  const message = JSON.stringify({
-    type: "swarm_update",
-    data: status,
-  });
-
-  for (const client of wsClients) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  }
-}
+// Broadcast function available for future real-time push updates
+// function broadcastSwarmUpdate(traceId: string): void { ... }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import Smart Tiering for Task vs Mission classification
-  const { classifyInput, executeLocalTask, getTierCostEstimate } = await import('./services/smart_tiering');
+  const { classifyInput, executeLocalTask } = await import(
+    "./services/smart_tiering"
+  );
 
-  app.post("/api/mission/execute", async (req: Request, res: Response) => {
-    try {
-      const { mission, swarmSize, maxBudget } = req.body as MissionRequest;
+  app.post(
+    "/api/mission/execute",
+    missionRateLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const { mission, swarmSize, maxBudget } = req.body as MissionRequest;
 
-      if (!mission || typeof mission !== "string" || mission.trim().length === 0) {
-        res.status(400).json({ error: "Mission is required" });
-        return;
-      }
+        if (
+          !mission ||
+          typeof mission !== "string" ||
+          mission.trim().length === 0
+        ) {
+          res.status(400).json({ error: "Mission is required" });
+          return;
+        }
 
-      if (mission.length > 10000) {
-        res.status(400).json({ error: "Mission exceeds maximum length of 10000 characters" });
-        return;
-      }
+        if (mission.length > 10000) {
+          res.status(400).json({
+            error: "Mission exceeds maximum length of 10000 characters",
+          });
+          return;
+        }
 
-      // Smart Tiering: Classify as Task (free) or Mission (Bayesian Swarm)
-      const classification = classifyInput(mission);
-      console.log(`Smart Tiering: ${classification.tier} (${(classification.confidence * 100).toFixed(0)}% - ${classification.reason})`);
+        // Smart Tiering: Classify as Task (free) or Mission (Bayesian Swarm)
+        const classification = classifyInput(mission);
+        console.log(
+          `Smart Tiering: ${classification.tier} (${(classification.confidence * 100).toFixed(0)}% - ${classification.reason})`,
+        );
 
-      if (classification.tier === 'task' && classification.localHandler) {
-        // Execute locally for $0 cost
-        const content = req.body.content || mission;
-        const result = executeLocalTask(mission, content);
+        if (classification.tier === "task" && classification.localHandler) {
+          // Execute locally for $0 cost
+          const content = req.body.content || mission;
+          const result = executeLocalTask(mission, content);
+
+          res.json({
+            traceId: `task-${Date.now()}`,
+            synthesis: result,
+            iterations: [],
+            cost: 0,
+            durationMs: 10,
+            redTeamFlags: [],
+            tier: "task",
+            tierReason: classification.reason,
+          });
+          return;
+        }
+
+        // Mission path: Use Bayesian Swarm
+        const trace = await executeMission(mission, swarmSize, maxBudget);
 
         res.json({
-          traceId: `task-${Date.now()}`,
-          synthesis: result,
-          iterations: [],
-          cost: 0,
-          durationMs: 10,
-          redTeamFlags: [],
-          tier: 'task',
+          traceId: trace.traceId,
+          synthesis: trace.synthesisResult,
+          iterations: trace.iterations,
+          cost: trace.actualCost,
+          durationMs: trace.durationMs,
+          redTeamFlags: trace.redTeamFlags,
+          tier: "mission",
           tierReason: classification.reason,
         });
-        return;
+      } catch (error) {
+        console.error("Mission execution error:", error);
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+
+        if (message.includes("blocked by safety")) {
+          res.status(403).json({ error: message });
+          return;
+        }
+        if (message.includes("exceeds budget")) {
+          res.status(402).json({ error: message });
+          return;
+        }
+
+        res.status(500).json({ error: message });
       }
-
-      // Mission path: Use Bayesian Swarm
-      const trace = await executeMission(mission, swarmSize, maxBudget);
-
-      res.json({
-        traceId: trace.traceId,
-        synthesis: trace.synthesisResult,
-        iterations: trace.iterations,
-        cost: trace.actualCost,
-        durationMs: trace.durationMs,
-        redTeamFlags: trace.redTeamFlags,
-        tier: 'mission',
-        tierReason: classification.reason,
-      });
-    } catch (error) {
-      console.error("Mission execution error:", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-
-      if (message.includes("blocked by safety")) {
-        res.status(403).json({ error: message });
-        return;
-      }
-      if (message.includes("exceeds budget")) {
-        res.status(402).json({ error: message });
-        return;
-      }
-
-      res.status(500).json({ error: message });
-    }
-  });
+    },
+  );
 
   app.post("/api/mission/estimate", (req: Request, res: Response) => {
     try {
-      const { mission, swarmSize } = req.body as { mission: string; swarmSize?: number };
+      const { mission, swarmSize } = req.body as {
+        mission: string;
+        swarmSize?: number;
+      };
 
       if (!mission || typeof mission !== "string") {
         res.status(400).json({ error: "Mission is required" });
@@ -151,7 +157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             agents: [],
             currentIteration: trace.iterations.length,
             progress: trace.status === "completed" ? 100 : 0,
-            message: trace.status === "completed" ? "Mission complete!" : trace.error || "Unknown",
+            message:
+              trace.status === "completed"
+                ? "Mission complete!"
+                : trace.error || "Unknown",
           });
           return;
         }
@@ -239,20 +248,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message.traceId,
             (thought) => {
               if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  type: "agent_thought",
-                  agentId: thought.agentId,
-                  thoughtType: thought.type,
-                  content: thought.content,
-                  confidence: thought.confidence,
-                  timestamp: thought.timestamp,
-                }));
+                ws.send(
+                  JSON.stringify({
+                    type: "agent_thought",
+                    agentId: thought.agentId,
+                    thoughtType: thought.type,
+                    content: thought.content,
+                    confidence: thought.confidence,
+                    timestamp: thought.timestamp,
+                  }),
+                );
               }
-            }
+            },
           );
           subscriptions.push(unsubscribe);
           clientSubscriptions.set(ws, subscriptions);
-          console.log(`Client subscribed to thoughts for trace: ${message.traceId}`);
+          console.log(
+            `Client subscribed to thoughts for trace: ${message.traceId}`,
+          );
         }
 
         // Real-time swarm event streaming
@@ -261,18 +274,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message.traceId,
             (event) => {
               if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  type: "swarm_event",
-                  eventType: event.type,
-                  data: event.data,
-                  timestamp: event.timestamp,
-                }));
+                ws.send(
+                  JSON.stringify({
+                    type: "swarm_event",
+                    eventType: event.type,
+                    data: event.data,
+                    timestamp: event.timestamp,
+                  }),
+                );
               }
-            }
+            },
           );
           subscriptions.push(unsubscribe);
           clientSubscriptions.set(ws, subscriptions);
-          console.log(`Client subscribed to events for trace: ${message.traceId}`);
+          console.log(
+            `Client subscribed to events for trace: ${message.traceId}`,
+          );
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
@@ -290,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("WebSocket client disconnected");
     });
 
-    ws.on("error", (error) => {
+    ws.on("error", (error: Error) => {
       console.error("WebSocket error:", error);
       const subscriptions = clientSubscriptions.get(ws) || [];
       for (const unsubscribe of subscriptions) {

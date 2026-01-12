@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -7,18 +7,24 @@ import {
   ScrollView,
   Image,
   Animated,
-  Platform,
+  RefreshControl,
 } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
-import { Colors, Spacing, BorderRadius, Typography, Fonts } from "@/constants/theme";
+import {
+  Colors,
+  Spacing,
+  BorderRadius,
+  Typography,
+  Fonts,
+} from "@/constants/theme";
 
 interface RedTeamFlag {
   flagId: string;
@@ -114,7 +120,10 @@ function TimelineNode({
       <View style={styles.timelineNodeContainer}>
         <View style={styles.timelineLine}>
           <LinearGradient
-            colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+            colors={[
+              Colors.dark.primaryGradientStart,
+              Colors.dark.primaryGradientEnd,
+            ]}
             style={styles.timelineDot}
           />
           <View style={styles.timelineConnector} />
@@ -169,13 +178,21 @@ function TimelineNode({
                   </ThemedText>
                 </View>
                 <View style={styles.metricItem}>
-                  <Feather name="clock" size={14} color={Colors.dark.textMuted} />
+                  <Feather
+                    name="clock"
+                    size={14}
+                    color={Colors.dark.textMuted}
+                  />
                   <ThemedText style={styles.metricValue}>
                     {(trace.durationMs / 1000).toFixed(1)}s
                   </ThemedText>
                 </View>
                 <View style={styles.metricItem}>
-                  <Feather name="dollar-sign" size={14} color={Colors.dark.textMuted} />
+                  <Feather
+                    name="dollar-sign"
+                    size={14}
+                    color={Colors.dark.textMuted}
+                  />
                   <ThemedText style={styles.metricValue}>
                     ${trace.actualCost.toFixed(4)}
                   </ThemedText>
@@ -184,13 +201,18 @@ function TimelineNode({
 
               {trace.redTeamFlags.length > 0 ? (
                 <View style={styles.flagsContainer}>
-                  <ThemedText style={styles.sectionLabel}>Safety Flags</ThemedText>
+                  <ThemedText style={styles.sectionLabel}>
+                    Safety Flags
+                  </ThemedText>
                   {trace.redTeamFlags.map((flag) => (
                     <View
                       key={flag.flagId}
                       style={[
                         styles.flagBadge,
-                        { backgroundColor: getSeverityColor(flag.severity) + "20" },
+                        {
+                          backgroundColor:
+                            getSeverityColor(flag.severity) + "20",
+                        },
                       ]}
                     >
                       <Feather
@@ -199,7 +221,10 @@ function TimelineNode({
                         color={getSeverityColor(flag.severity)}
                       />
                       <ThemedText
-                        style={[styles.flagText, { color: getSeverityColor(flag.severity) }]}
+                        style={[
+                          styles.flagText,
+                          { color: getSeverityColor(flag.severity) },
+                        ]}
                       >
                         {flag.severity}: {flag.explanation}
                       </ThemedText>
@@ -222,20 +247,30 @@ function TimelineNode({
               </View>
 
               <View style={styles.weightsContainer}>
-                <ThemedText style={styles.sectionLabel}>Posterior Weights</ThemedText>
+                <ThemedText style={styles.sectionLabel}>
+                  Posterior Weights
+                </ThemedText>
                 <View style={styles.weightsGrid}>
                   {Object.entries(trace.finalPosteriorWeights)
                     .sort(([, a], [, b]) => b - a)
                     .slice(0, 5)
                     .map(([agentId, weight]) => (
                       <View key={agentId} style={styles.weightItem}>
-                        <ThemedText style={styles.weightAgent}>{agentId}</ThemedText>
+                        <ThemedText style={styles.weightAgent}>
+                          {agentId}
+                        </ThemedText>
                         <View style={styles.weightBarContainer}>
                           <LinearGradient
-                            colors={[Colors.dark.primaryGradientStart, Colors.dark.primaryGradientEnd]}
+                            colors={[
+                              Colors.dark.primaryGradientStart,
+                              Colors.dark.primaryGradientEnd,
+                            ]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
-                            style={[styles.weightBar, { width: `${weight * 100}%` }]}
+                            style={[
+                              styles.weightBar,
+                              { width: `${weight * 100}%` },
+                            ]}
                           />
                         </View>
                         <ThemedText style={styles.weightValue}>
@@ -257,14 +292,23 @@ export default function TraceScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: tracesData, isLoading } = useQuery<TracesResponse>({
+  const { data: tracesData } = useQuery<TracesResponse>({
     queryKey: ["/api/traces"],
     refetchInterval: 5000,
   });
 
   const traces = tracesData?.traces || [];
   const hasTraces = traces.length > 0;
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await queryClient.invalidateQueries({ queryKey: ["/api/traces"] });
+    setIsRefreshing(false);
+  }, [queryClient]);
 
   const toggleExpand = (traceId: string) => {
     setExpandedTraceId((prev) => (prev === traceId ? null : traceId));
@@ -312,6 +356,16 @@ export default function TraceScreen() {
             },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.dark.primaryGradientStart}
+              colors={[Colors.dark.primaryGradientStart]}
+            />
+          }
+          accessibilityLabel="Mission traces list"
+          accessibilityHint="Pull down to refresh. Double tap a trace to expand details."
         />
       )}
     </View>
