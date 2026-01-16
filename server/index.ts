@@ -217,35 +217,28 @@ function setupErrorHandler(app: express.Application) {
   });
 }
 
-// Export the app for Vercel serverless functions
-export default app;
-
-// Only start the server if running directly (not imported as a module)
-if (require.main === module) {
-  (async () => {
-    setupCors(app);
-    setupBodyParsing(app);
-    setupRequestLogging(app);
-
-    configureExpoAndLanding(app);
-
-    const server = await registerRoutes(app);
-
-    setupErrorHandler(app);
-
-    const port = parseInt(process.env.PORT || "5000", 10);
-    const host = process.platform === "win32" ? "127.0.0.1" : "0.0.0.0";
-    server.listen(port, host, () => {
-      log(`express server serving on http://${host}:${port}`);
-    });
-  })();
-} else {
-  // If imported (e.g. by Vercel), still setup routes/middleware
+// Encapsulate initialization logic
+export async function init() {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
   configureExpoAndLanding(app);
-  registerRoutes(app).then(() => {
-    setupErrorHandler(app);
-  });
+
+  await registerRoutes(app);
+  setupErrorHandler(app);
+  return app;
 }
+
+// Only start the server if running directly (not imported as a module)
+if (require.main === module) {
+  (async () => {
+    await init();
+    const port = parseInt(process.env.PORT || "5000", 10);
+    const host = process.platform === "win32" ? "127.0.0.1" : "0.0.0.0";
+    app.listen(port, host, () => {
+      log(`express server serving on http://${host}:${port}`);
+    });
+  })();
+}
+
+export default app;

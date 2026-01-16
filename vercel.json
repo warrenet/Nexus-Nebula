@@ -86,7 +86,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api/index"
     },
     {
       "source": "/((?!api|icons|splash|sw.js|manifest.webmanifest|robots.txt|sitemap.xml).*)",
