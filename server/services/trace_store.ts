@@ -95,11 +95,11 @@ export function listTraces(
           if (!allTraces.has(trace.traceId)) {
             allTraces.set(trace.traceId, trace);
           }
-        } catch (e) {
+        } catch {
           // Ignore corrupted files
         }
       }
-    } catch (e) {
+    } catch {
       // Directory read failed
       shouldUseMemory = true;
     }
