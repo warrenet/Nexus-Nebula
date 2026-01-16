@@ -20,6 +20,7 @@ import {
   validateParams,
   validateQuery,
 } from "./validators";
+import { classifyInput, executeLocalTask } from "./services/smart_tiering";
 
 const wsClients: Set<WebSocket> = new Set();
 
@@ -30,10 +31,7 @@ const clientSubscriptions: Map<WebSocket, (() => void)[]> = new Map();
 // function broadcastSwarmUpdate(traceId: string): void { ... }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Import Smart Tiering for Task vs Mission classification
-  const { classifyInput, executeLocalTask } = await import(
-    "./services/smart_tiering"
-  );
+  // Smart Tiering logic available synchronously now
 
   app.post(
     "/api/mission/execute",
