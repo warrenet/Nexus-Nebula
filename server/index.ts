@@ -100,12 +100,15 @@ function setupRequestLogging(app: express.Application) {
 function getAppName(): string {
   try {
     const appJsonPath = path.resolve(process.cwd(), "app.json");
-    const appJsonContent = fs.readFileSync(appJsonPath, "utf-8");
-    const appJson = JSON.parse(appJsonContent);
-    return appJson.expo?.name || "App Landing Page";
-  } catch {
-    return "App Landing Page";
+    if (fs.existsSync(appJsonPath)) {
+      const appJsonContent = fs.readFileSync(appJsonPath, "utf-8");
+      const appJson = JSON.parse(appJsonContent);
+      return appJson.expo?.name || "App Landing Page";
+    }
+  } catch (e) {
+    console.warn("Could not read app.json, using default name");
   }
+  return "App Landing Page";
 }
 
 function serveExpoManifest(platform: string, res: Response) {
@@ -148,10 +151,12 @@ function serveLandingPage({
   const baseUrl = `${protocol}://${host}`;
   const expsUrl = `${host}`;
 
-  log(`baseUrl`, baseUrl);
-  log(`expsUrl`, expsUrl);
+  // Use a simple fallback if template is empty
+  const template =
+    landingPageTemplate ||
+    `<html><head><title>APP_NAME_PLACEHOLDER</title></head><body><h1>Welcome to APP_NAME_PLACEHOLDER</h1></body></html>`;
 
-  const html = landingPageTemplate
+  const html = template
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
     .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
     .replace(/APP_NAME_PLACEHOLDER/g, appName);
@@ -161,8 +166,18 @@ function serveLandingPage({
 }
 
 function configureExpoAndLanding(app: express.Application) {
-  const templatePath = path.resolve(process.cwd(), "web", "index.html");
-  const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
+  let landingPageTemplate = "";
+  try {
+    const templatePath = path.resolve(process.cwd(), "web", "index.html");
+    if (fs.existsSync(templatePath)) {
+      landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
+    } else {
+      console.warn("web/index.html not found, using fallback");
+    }
+  } catch (e) {
+    console.warn("Failed to load landing page template:", e);
+  }
+
   const appName = getAppName();
 
   log("Serving static Expo files with dynamic manifest routing");
@@ -193,8 +208,15 @@ function configureExpoAndLanding(app: express.Application) {
     next();
   });
 
-  app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
-  app.use(express.static(path.resolve(process.cwd(), "static-build")));
+  const assetsPath = path.resolve(process.cwd(), "assets");
+  if (fs.existsSync(assetsPath)) {
+    app.use("/assets", express.static(assetsPath));
+  }
+
+  const staticBuildPath = path.resolve(process.cwd(), "static-build");
+  if (fs.existsSync(staticBuildPath)) {
+    app.use(express.static(staticBuildPath));
+  }
 
   log("Expo routing: Checking expo-platform header on / and /manifest");
 }
