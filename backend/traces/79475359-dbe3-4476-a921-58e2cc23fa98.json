@@ -1,0 +1,222 @@
+{
+  "traceId": "79475359-dbe3-4476-a921-58e2cc23fa98",
+  "timestamp": "2026-01-12T17:14:53.583Z",
+  "mission": "Analyze the key factors that determine the success of AI startups in 2026, considering market dynamics, team composition, technology differentiation, and funding strategies.",
+  "iterations": [
+    {
+      "iterationId": 1,
+      "agentResponses": [
+        {
+          "agentId": "agent-1",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-2",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-3",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-4",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-5",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-6",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-7",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-8",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        }
+      ],
+      "consensusScore": 0,
+      "timestamp": "2026-01-12T17:15:35.618Z"
+    },
+    {
+      "iterationId": 2,
+      "agentResponses": [
+        {
+          "agentId": "agent-1",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-2",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-3",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 1,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-4",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-5",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-6",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-7",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        },
+        {
+          "agentId": "agent-8",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "OPENROUTER_API_KEY environment variable is not set"
+        }
+      ],
+      "consensusScore": 0,
+      "timestamp": "2026-01-12T17:15:35.620Z"
+    }
+  ],
+  "branchScores": {},
+  "redTeamFlags": [],
+  "finalPosteriorWeights": {},
+  "synthesisResult": "",
+  "costEstimate": 0.027225,
+  "actualCost": 0,
+  "durationMs": 42040,
+  "status": "failed",
+  "error": "Both synthesis models failed: Error: OPENROUTER_API_KEY environment variable is not set, Error: OPENROUTER_API_KEY environment variable is not set"
+}

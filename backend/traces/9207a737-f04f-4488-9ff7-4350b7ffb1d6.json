@@ -1,0 +1,221 @@
+{
+  "traceId": "9207a737-f04f-4488-9ff7-4350b7ffb1d6",
+  "timestamp": "2026-01-12T17:38:15.556Z",
+  "mission": "Analyze the key factors that determine the success of AI startups in 2026, considering market dynamics, team composition, technology differentiation, and funding strategies.",
+  "iterations": [
+    {
+      "iterationId": 1,
+      "agentResponses": [
+        {
+          "agentId": "agent-1",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 33849,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-2",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32704,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-3",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32176,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-4",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32274,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-5",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31879,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-6",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31911,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-7",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31868,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-8",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32175,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        }
+      ],
+      "consensusScore": 0,
+      "timestamp": "2026-01-12T17:39:33.363Z"
+    },
+    {
+      "iterationId": 2,
+      "agentResponses": [
+        {
+          "agentId": "agent-1",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 33849,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-2",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32704,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-3",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32176,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-4",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32274,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-5",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31879,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-6",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31911,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-7",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 31868,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        },
+        {
+          "agentId": "agent-8",
+          "model": "google/gemini-2.0-flash-exp:free",
+          "response": "",
+          "confidence": 0,
+          "latencyMs": 32175,
+          "tokens": {
+            "input": 0,
+            "output": 0
+          },
+          "error": "Rate limit exceeded after max retries"
+        }
+      ],
+      "consensusScore": 0,
+      "timestamp": "2026-01-12T17:39:37.922Z"
+    }
+  ],
+  "branchScores": {},
+  "redTeamFlags": [],
+  "finalPosteriorWeights": {},
+  "synthesisResult": "I apologize, but I notice that no swarm responses were actually included in your prompt. Without the weighted responses from the Bayesian reasoning agents, I cannot perform the synthesis as requested.\n\nIf you'd like me to analyze the key factors determining AI startup success in 2026, I'm happy to do so, but I want to be clear that this would be a fresh analysis rather than a synthesis of swarm responses.\n\nWould you like to either:\n1. Share the swarm responses for me to synthesize, or\n2. Receive a direct analysis of AI startup success factors for 2026?\n\nPlease let me know how you'd like to proceed.",
+  "costEstimate": 0.027225,
+  "actualCost": 0.011342999999999999,
+  "durationMs": 92153,
+  "status": "completed"
+}

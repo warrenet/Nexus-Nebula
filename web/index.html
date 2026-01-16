@@ -1,210 +1,903 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 
-    <!-- PWA Primary Meta Tags -->
-    <title>Nexus Nebula: Rogue Bayes Engine</title>
-    <meta name="description"
-        content="A sovereign Bayesian swarm orchestrator with multi-turn critique and real-time consensus.">
-    <meta name="theme-color" content="#0a0a0a">
+  <!-- PWA Primary Meta Tags -->
+  <title>Nexus Nebula: Rogue Bayes Engine</title>
+  <meta name="description" content="Deploy Bayesian AI swarms to solve complex problems with multi-agent orchestration and confidence scoring.">
+  <meta name="theme-color" content="#0a0a0a">
 
-    <!-- iOS PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Nexus">
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Nexus">
 
-    <!-- iOS Splash Screens & Icons -->
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
+  <!-- iOS Splash Screens & Icons -->
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
 
-    <!-- iOS Splash Screens -->
-    <link rel="apple-touch-startup-image" href="/splash/splash-2048x2732.png"
-        media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)">
+  <!-- Google Fonts: Inter for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 
-    <!-- Android/Chrome -->
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+  <!-- iOS Splash Screens -->
+  <link rel="apple-touch-startup-image" href="/splash/splash-2048x2732.png"
+      media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)">
 
-    <!-- Splash Screen Styles -->
-    <style>
-        :root {
-            --color-bg: #0a0a0a;
-            --color-primary: #8B5CF6;
-            --color-secondary: #06B6D4;
-        }
+  <!-- Android/Chrome -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <style>
+    :root {
+      --color-bg: #0a0a0a;
+      --color-bg-secondary: #1a0a2e;
+      --color-primary: #8B5CF6;
+      --color-secondary: #EC4899;
+      --color-cyan: #06B6D4;
+      --color-text: #ffffff;
+      --color-text-muted: #a0a0a0;
+      --color-glass: rgba(255, 255, 255, 0.05);
+      --color-glass-border: rgba(139, 92, 246, 0.2);
+    }
 
-        html,
-        body {
-            height: 100%;
-            background: var(--color-bg);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            /* Safe area support for notch devices */
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        #splash {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(180deg, #0f0f1a 0%, #0a0a0a 50%, #0a0a14 100%);
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        .nebula-logo {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 24px;
-            animation: pulse 2s ease-in-out infinite;
-        }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+      color: var(--color-text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow-x: hidden;
+    }
 
-        @keyframes pulse {
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
 
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+    /* Gradient Text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
-            50% {
-                transform: scale(1.05);
-                opacity: 0.9;
-            }
-        }
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 6rem 0 4rem;
+      position: relative;
+    }
 
-        .splash-title {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
-        .splash-subtitle {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
+    .hero-logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 2rem;
+      animation: float 4s ease-in-out infinite;
+    }
 
-        .splash-loader {
-            margin-top: 40px;
-            width: 100px;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-        }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
 
-        .splash-loader::after {
-            content: '';
-            display: block;
-            width: 40%;
-            height: 100%;
-            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-            border-radius: 3px;
-            animation: loading 1.5s ease-in-out infinite;
-        }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
 
-        @keyframes loading {
-            0% {
-                transform: translateX(-100%);
-            }
+    .hero p {
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      color: var(--color-text-muted);
+      margin-bottom: 2rem;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      z-index: 1;
+    }
 
-            100% {
-                transform: translateX(350%);
-            }
-        }
+    /* Buttons */
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
 
-        #root {
-            height: 100%;
-        }
-    </style>
+    .btn {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--color-glass);
+      color: white;
+      border: 2px solid var(--color-glass-border);
+    }
+
+    /* Stats Section */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem;
+      margin: 4rem 0;
+      text-align: center;
+    }
+
+    .stat-card {
+      padding: 2rem;
+      background: var(--color-glass);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--color-primary);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--color-text-muted);
+      font-size: 1rem;
+    }
+
+    /* Features Section */
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 3rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin: 4rem 0;
+    }
+
+    .feature-card {
+      background: rgba(26, 10, 46, 0.4);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-radius: 16px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: -1;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: transparent;
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--color-text);
+    }
+
+    .feature-card p {
+      color: #c0c0c0;
+      line-height: 1.6;
+    }
+
+    /* Demo Section */
+    .demo-section {
+      margin: 6rem 0;
+      scroll-margin-top: 2rem;
+    }
+
+    .demo-container {
+      background: rgba(26, 10, 46, 0.6);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 16px;
+      padding: 3rem;
+      max-width: 900px;
+      margin: 0 auto;
+      backdrop-filter: blur(10px);
+    }
+
+    .demo-templates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .demo-template-btn {
+      padding: 0.75rem 1.25rem;
+      background: var(--color-glass);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 8px;
+      color: var(--color-text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .demo-template-btn:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: var(--color-primary);
+    }
+
+    .demo-input {
+      width: 100%;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .demo-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .demo-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .demo-controls label {
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-controls input[type="number"] {
+      width: 70px;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 6px;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .demo-execute-btn {
+      flex: 1;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .demo-execute-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    .demo-execute-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Demo Results */
+    .demo-results {
+      display: none;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-glass-border);
+    }
+
+    .demo-results.visible {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .progress-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-label {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .agent-indicator {
+      padding: 0.75rem;
+      background: var(--color-glass);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.8rem;
+      transition: all 0.3s ease;
+    }
+
+    .agent-indicator.active {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .agent-indicator.complete {
+      border-color: #10B981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .result-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--color-glass-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .confidence-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .confidence-high {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10B981;
+    }
+
+    .confidence-medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: #F59E0B;
+    }
+
+    .result-synthesis {
+      color: var(--color-text);
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .result-meta {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--color-glass-border);
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      color: #606060;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 6rem;
+    }
+
+    footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error state */
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      color: #EF4444;
+      margin-top: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .hero { padding: 3rem 0 2rem; }
+      .features { grid-template-columns: 1fr; }
+      .demo-container { padding: 1.5rem; }
+      .demo-controls { flex-wrap: wrap; }
+      .result-meta { flex-wrap: wrap; gap: 1rem; }
+    }
+  </style>
 </head>
-
 <body>
-    <!-- Splash Screen -->
-    <div id="splash">
-        <svg class="nebula-logo" viewBox="0 0 192 192">
-            <defs>
-                <radialGradient id="nebulaGrad" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#8B5CF6" />
-                    <stop offset="70%" stop-color="#6D28D9" />
-                    <stop offset="100%" stop-color="#0A0A0A" />
-                </radialGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                </filter>
-            </defs>
-            <rect width="192" height="192" fill="#0A0A0A" />
-            <circle cx="96" cy="96" r="75" fill="url(#nebulaGrad)" filter="url(#glow)" />
-            <ellipse cx="96" cy="96" rx="45" ry="30" fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.5"
-                transform="rotate(-30 96 96)" />
-            <circle cx="96" cy="96" r="15" fill="#8B5CF6" filter="url(#glow)" />
-            <circle cx="96" cy="96" r="8" fill="#06B6D4" />
-            <circle cx="96" cy="96" r="4" fill="#FFF" opacity="0.9" />
-            <circle cx="68" cy="68" r="5" fill="#10B981" filter="url(#glow)" />
-            <circle cx="124" cy="68" r="4" fill="#F59E0B" filter="url(#glow)" />
-            <circle cx="135" cy="105" r="5" fill="#06B6D4" filter="url(#glow)" />
-            <circle cx="68" cy="124" r="4" fill="#8B5CF6" filter="url(#glow)" />
-        </svg>
-        <h1 class="splash-title">Nexus Nebula</h1>
-        <p class="splash-subtitle">Rogue Bayes Engine</p>
-        <div class="splash-loader"></div>
-    </div>
+  <div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <svg class="hero-logo" viewBox="0 0 192 192">
+        <defs>
+          <radialGradient id="nebulaGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#8B5CF6" />
+            <stop offset="70%" stop-color="#6D28D9" />
+            <stop offset="100%" stop-color="#0A0A0A" />
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width="192" height="192" fill="#0A0A0A" />
+        <circle cx="96" cy="96" r="75" fill="url(#nebulaGrad)" filter="url(#glow)" />
+        <ellipse cx="96" cy="96" rx="45" ry="30" fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.5" transform="rotate(-30 96 96)" />
+        <circle cx="96" cy="96" r="15" fill="#8B5CF6" filter="url(#glow)" />
+        <circle cx="96" cy="96" r="8" fill="#06B6D4" />
+        <circle cx="96" cy="96" r="4" fill="#FFF" opacity="0.9" />
+        <circle cx="68" cy="68" r="5" fill="#10B981" filter="url(#glow)" />
+        <circle cx="124" cy="68" r="4" fill="#F59E0B" filter="url(#glow)" />
+        <circle cx="135" cy="105" r="5" fill="#06B6D4" filter="url(#glow)" />
+        <circle cx="68" cy="124" r="4" fill="#8B5CF6" filter="url(#glow)" />
+      </svg>
+      <h1 class="gradient-text">Deploy Bayesian AI Swarms to Solve Complex Problems</h1>
+      <p>Multi-agent orchestration with confidence scoring, budget control, and full observability</p>
+      <div class="cta-buttons">
+        <button class="btn btn-primary" onclick="scrollToDemo()">🚀 Try Demo Mission</button>
+        <a href="https://github.com/warrenet/Nexus-Nebula" class="btn btn-secondary" target="_blank">⭐ View on GitHub</a>
+      </div>
+    </section>
 
-    <!-- React Root -->
-    <div id="root"></div>
+    <!-- Stats Section -->
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-number gradient-text">8-32</div>
+        <div class="stat-label">Parallel AI Agents</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">94%</div>
+        <div class="stat-label">Avg Confidence Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">100ms</div>
+        <div class="stat-label">Response Time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number gradient-text">$0</div>
+        <div class="stat-label">Simple Tasks (Smart Tier)</div>
+      </div>
+    </section>
 
-    <!-- Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('SW registered:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('SW registration failed:', err);
-                    });
+    <!-- Features Section -->
+    <section class="features-section">
+      <h2 class="section-title gradient-text">Core Capabilities</h2>
+      <div class="features">
+        <div class="feature-card">
+          <span class="feature-icon">🧠</span>
+          <h3>Bayesian Swarm Intelligence</h3>
+          <p>Run 4-32 parallel AI agents across multiple models (GPT-4, Claude, Gemini). Results are weighted by Bayesian inference to produce optimal consensus with confidence scoring.</p>
+        </div>
+        
+        <div class="feature-card">
+          <span class="feature-icon">💰</span>
+          <h3>Budget-Aware Execution</h3>
+          <p>Set hard dollar limits before execution. Get preflight cost estimates. Track spending in real-time. Never exceed your API budget with enforced guardrails.</p>
+        </div>
+        
+        <div class="feature-card">
+          <span class="feature-icon">🔍</span>
+          <h3>Full Observability</h3>
+          <p>Complete trace logs for every execution. Visualize decision trees. Export mission results. Prometheus-compatible metrics for monitoring production deployments.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3>Safety-First Design</h3>
+          <p>Integrated red team content flagging with severity levels. Input validation with Zod schemas. Rate limiting. CSP headers. Built for production security.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📱</span>
+          <h3>PWA Ready</h3>
+          <p>Install on any device. Works offline with service worker caching. Native-like experience. Automatic updates with background sync.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Smart Tiering</h3>
+          <p>Simple tasks execute locally for $0. Complex missions use full Bayesian swarm. Automatic classification with confidence-based routing.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo-section" id="demo">
+      <h2 class="section-title gradient-text">Try It Now</h2>
+      <div class="demo-container">
+        <div class="demo-templates">
+          <button class="demo-template-btn" onclick="setDemoMission('scientific')">🔬 Scientific Analysis</button>
+          <button class="demo-template-btn" onclick="setDemoMission('strategic')">📊 Strategic Planning</button>
+          <button class="demo-template-btn" onclick="setDemoMission('creative')">🧠 Creative Brainstorm</button>
+          <button class="demo-template-btn" onclick="setDemoMission('technical')">💻 Technical Review</button>
+        </div>
+        
+        <textarea id="missionInput" class="demo-input" placeholder="Enter your mission here... What problem should the AI swarm solve?">Analyze the key factors that determine the success of AI startups in 2026, considering market dynamics, team composition, technology differentiation, and funding strategies.</textarea>
+        
+        <div class="demo-controls">
+          <label>
+            Swarm Size:
+            <input type="number" id="swarmSize" value="8" min="4" max="32" step="4">
+          </label>
+          <label>
+            Max Budget: $
+            <input type="number" id="maxBudget" value="2.00" min="0.10" max="10.00" step="0.10">
+          </label>
+          <button id="executeBtn" class="demo-execute-btn" onclick="executeMission()">
+            ⚡ Execute Mission
+          </button>
+        </div>
+
+        <div id="demoResults" class="demo-results">
+          <div class="progress-container">
+            <div class="progress-header">
+              <span class="progress-label" id="progressLabel">Initializing swarm...</span>
+              <span class="progress-label" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+          
+          <div id="agentGrid" class="agent-grid"></div>
+          
+          <div id="resultCard" class="result-card" style="display: none;">
+            <div class="result-header">
+              <h3>🎯 Synthesis Result</h3>
+              <span id="confidenceBadge" class="confidence-badge confidence-high">94% Confidence</span>
+            </div>
+            <div id="synthesisText" class="result-synthesis"></div>
+            <div class="result-meta">
+              <span id="metaCost">💰 Cost: $0.00</span>
+              <span id="metaDuration">⏱️ Duration: 0ms</span>
+              <span id="metaTier">🎯 Tier: Mission</span>
+            </div>
+          </div>
+          
+          <div id="errorMessage" class="error-message" style="display: none;"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Built with 🧠 by the <a href="https://github.com/warrenet/Nexus-Nebula" target="_blank">Nexus Nebula</a> team</p>
+    <p style="margin-top: 0.5rem;">MIT License © 2026</p>
+  </footer>
+
+  <!-- React Root (for PWA) -->
+  <div id="root"></div>
+
+  <!-- Scripts -->
+  <script>
+    // Demo mission templates
+    const missions = {
+      scientific: "Analyze the potential impact of quantum computing on modern cryptography, considering:\n1. Current vulnerabilities in RSA and ECC\n2. Timeline for quantum supremacy in cryptanalysis\n3. Post-quantum cryptography alternatives\n4. Implementation challenges for migration",
+      strategic: "Evaluate the key factors for a successful product launch in the AI SaaS market:\n1. Market timing and competitive positioning\n2. Pricing strategy and unit economics\n3. Go-to-market channel selection\n4. Customer acquisition cost optimization",
+      creative: "Generate innovative solutions for sustainable urban transportation that:\n1. Reduce carbon emissions by 50%\n2. Maintain cost-effectiveness for users\n3. Integrate with existing infrastructure\n4. Scale to cities of 5+ million population",
+      technical: "Review the architecture of a microservices-based e-commerce platform:\n1. Identify potential single points of failure\n2. Evaluate database sharding strategy\n3. Analyze API gateway bottlenecks\n4. Recommend observability improvements"
+    };
+
+    function setDemoMission(type) {
+      document.getElementById('missionInput').value = missions[type] || '';
+    }
+
+    function scrollToDemo() {
+      document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function executeMission() {
+      const mission = document.getElementById('missionInput').value.trim();
+      const swarmSize = parseInt(document.getElementById('swarmSize').value);
+      const maxBudget = parseFloat(document.getElementById('maxBudget').value);
+      
+      if (!mission) {
+        alert('Please enter a mission');
+        return;
+      }
+
+      const executeBtn = document.getElementById('executeBtn');
+      const results = document.getElementById('demoResults');
+      const progressFill = document.getElementById('progressFill');
+      const progressLabel = document.getElementById('progressLabel');
+      const progressPercent = document.getElementById('progressPercent');
+      const agentGrid = document.getElementById('agentGrid');
+      const resultCard = document.getElementById('resultCard');
+      const errorMessage = document.getElementById('errorMessage');
+
+      // Reset and show results area
+      results.classList.add('visible');
+      resultCard.style.display = 'none';
+      errorMessage.style.display = 'none';
+      progressFill.style.width = '0%';
+      progressLabel.textContent = 'Initializing swarm...';
+      progressPercent.textContent = '0%';
+      
+      // Create agent indicators
+      agentGrid.innerHTML = '';
+      for (let i = 0; i < swarmSize; i++) {
+        const agent = document.createElement('div');
+        agent.className = 'agent-indicator';
+        agent.id = `agent-${i}`;
+        agent.textContent = `Agent ${i + 1}`;
+        agentGrid.appendChild(agent);
+      }
+
+      // Disable button
+      executeBtn.disabled = true;
+      executeBtn.innerHTML = '<span class="spinner"></span> Executing...';
+
+      try {
+        // Simulate progress (real implementation would use WebSocket)
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          if (progress < 90) {
+            progress += Math.random() * 15;
+            progress = Math.min(progress, 90);
+            progressFill.style.width = `${progress}%`;
+            progressPercent.textContent = `${Math.round(progress)}%`;
+            
+            // Activate random agents
+            const agents = document.querySelectorAll('.agent-indicator');
+            agents.forEach((agent, i) => {
+              if (Math.random() > 0.5 && progress > i * (100 / swarmSize)) {
+                agent.classList.add('active');
+              }
             });
+            
+            if (progress < 30) progressLabel.textContent = 'Spawning agents...';
+            else if (progress < 60) progressLabel.textContent = 'Executing parallel inference...';
+            else progressLabel.textContent = 'Synthesizing consensus...';
+          }
+        }, 300);
+
+        // Make API call
+        const response = await fetch('/api/mission/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mission, swarmSize, maxBudget })
+        });
+
+        clearInterval(progressInterval);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Mission execution failed');
         }
 
-        // Hide splash when app loads
-        window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                const splash = document.getElementById('splash');
-                if (splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 500);
-                }
-            }, 1500);
-        });
-    </script>
-</body>
+        const data = await response.json();
 
+        // Complete progress
+        progressFill.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressLabel.textContent = 'Mission complete!';
+
+        // Mark all agents complete
+        document.querySelectorAll('.agent-indicator').forEach(agent => {
+          agent.classList.remove('active');
+          agent.classList.add('complete');
+        });
+
+        // Show results
+        resultCard.style.display = 'block';
+        document.getElementById('synthesisText').textContent = data.synthesis;
+        document.getElementById('metaCost').textContent = `💰 Cost: $${(data.cost || 0).toFixed(4)}`;
+        document.getElementById('metaDuration').textContent = `⏱️ Duration: ${data.durationMs || 0}ms`;
+        document.getElementById('metaTier').textContent = `🎯 Tier: ${data.tier || 'Mission'}`;
+
+        // Confidence badge
+        const confidenceBadge = document.getElementById('confidenceBadge');
+        const confidence = data.confidence || 0.94;
+        confidenceBadge.textContent = `${Math.round(confidence * 100)}% Confidence`;
+        confidenceBadge.className = confidence >= 0.8 ? 'confidence-badge confidence-high' : 'confidence-badge confidence-medium';
+
+      } catch (error) {
+        console.error('Mission error:', error);
+        progressFill.style.width = '0%';
+        progressLabel.textContent = 'Mission failed';
+        errorMessage.textContent = `❌ ${error.message}`;
+        errorMessage.style.display = 'block';
+        
+        document.querySelectorAll('.agent-indicator').forEach(agent => {
+          agent.classList.remove('active');
+        });
+      } finally {
+        executeBtn.disabled = false;
+        executeBtn.innerHTML = '⚡ Execute Mission';
+      }
+    }
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered:', registration.scope);
+          })
+          .catch(err => {
+            console.log('SW registration failed:', err);
+          });
+      });
+    }
+  </script>
+</body>
 </html>

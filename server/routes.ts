@@ -10,8 +10,16 @@ import {
 import { getTrace, listTraces } from "./services/trace_store";
 import { formatPrometheusMetrics } from "./services/metrics";
 import { swarmEventEmitter } from "./services/SwarmEventEmitter";
-import type { MissionRequest } from "./types";
 import { missionRateLimiter } from "./middleware/rateLimiter";
+import {
+  MissionRequestSchema,
+  EstimateRequestSchema,
+  TraceIdSchema,
+  PaginationSchema,
+  validateBody,
+  validateParams,
+  validateQuery,
+} from "./validators";
 
 const wsClients: Set<WebSocket> = new Set();
 
@@ -32,23 +40,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     missionRateLimiter,
     async (req: Request, res: Response) => {
       try {
-        const { mission, swarmSize, maxBudget } = req.body as MissionRequest;
-
-        if (
-          !mission ||
-          typeof mission !== "string" ||
-          mission.trim().length === 0
-        ) {
-          res.status(400).json({ error: "Mission is required" });
+        // Validate request body with Zod schema
+        const validation = validateBody(MissionRequestSchema, req.body);
+        if (!validation.success) {
+          res.status(400).json({ error: validation.error });
           return;
         }
-
-        if (mission.length > 10000) {
-          res.status(400).json({
-            error: "Mission exceeds maximum length of 10000 characters",
-          });
-          return;
-        }
+        const { mission, swarmSize, maxBudget } = validation.data;
 
         // Smart Tiering: Classify as Task (free) or Mission (Bayesian Swarm)
         const classification = classifyInput(mission);
@@ -108,15 +106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/mission/estimate", (req: Request, res: Response) => {
     try {
-      const { mission, swarmSize } = req.body as {
-        mission: string;
-        swarmSize?: number;
-      };
-
-      if (!mission || typeof mission !== "string") {
-        res.status(400).json({ error: "Mission is required" });
+      const validation = validateBody(EstimateRequestSchema, req.body);
+      if (!validation.success) {
+        res.status(400).json({ error: validation.error });
         return;
       }
+      const { mission, swarmSize } = validation.data;
 
       const estimate = estimateCost(mission, swarmSize ?? 8);
       res.json(estimate);
@@ -128,7 +123,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/mission/:traceId", (req: Request, res: Response) => {
     try {
-      const { traceId } = req.params;
+      const paramValidation = validateParams(TraceIdSchema, req.params);
+      if (!paramValidation.success) {
+        res.status(400).json({ error: paramValidation.error });
+        return;
+      }
+      const { traceId } = paramValidation.data;
       const trace = getTrace(traceId);
 
       if (!trace) {
@@ -145,7 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/mission/:traceId/status", (req: Request, res: Response) => {
     try {
-      const { traceId } = req.params;
+      const paramValidation = validateParams(TraceIdSchema, req.params);
+      if (!paramValidation.success) {
+        res.status(400).json({ error: paramValidation.error });
+        return;
+      }
+      const { traceId } = paramValidation.data;
       const status = getSwarmStatus(traceId);
 
       if (!status) {
@@ -177,8 +182,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/traces", (req: Request, res: Response) => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      const offset = parseInt(req.query.offset as string) || 0;
+      const queryValidation = validateQuery(PaginationSchema, req.query);
+      if (!queryValidation.success) {
+        res.status(400).json({ error: queryValidation.error });
+        return;
+      }
+      const { limit, offset } = queryValidation.data;
 
       const result = listTraces(limit, offset);
       res.json(result);

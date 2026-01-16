@@ -161,12 +161,7 @@ function serveLandingPage({
 }
 
 function configureExpoAndLanding(app: express.Application) {
-  const templatePath = path.resolve(
-    process.cwd(),
-    "server",
-    "templates",
-    "landing-page.html",
-  );
+  const templatePath = path.resolve(process.cwd(), "web", "index.html");
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
 
@@ -215,9 +210,10 @@ function setupErrorHandler(app: express.Application) {
     const status = error.status || error.statusCode || 500;
     const message = error.message || "Internal Server Error";
 
-    res.status(status).json({ message });
+    // Log the error for observability (do NOT rethrow after sending response)
+    console.error(`[ERROR] ${status}: ${message}`, err);
 
-    throw err;
+    res.status(status).json({ message });
   });
 }
 
@@ -233,14 +229,8 @@ function setupErrorHandler(app: express.Application) {
   setupErrorHandler(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`express server serving on port ${port}`);
-    },
-  );
+  const host = process.platform === "win32" ? "127.0.0.1" : "0.0.0.0";
+  server.listen(port, host, () => {
+    log(`express server serving on http://${host}:${port}`);
+  });
 })();
