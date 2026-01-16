@@ -10,7 +10,7 @@
 
 **A whimsical yet rigorous AI task orchestrator leveraging Bayesian swarm intelligence**
 
-[Live Demo](https://nexus-nebula.vercel.app) • [Documentation](./SYSTEM_DESIGN.md) • [API Reference](#api-reference)
+[Live Demo](https://nexus-nebula-one.vercel.app) • [Documentation](./SYSTEM_DESIGN.md) • [API Reference](#api-reference)
 
 </div>
 

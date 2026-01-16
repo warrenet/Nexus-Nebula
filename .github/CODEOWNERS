@@ -1,0 +1,17 @@
+# CODEOWNERS for Nexus Nebula
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything
+* @warrenet
+
+# Server-side code requires backend review
+/server/ @warrenet
+
+# Client/frontend changes
+/client/ @warrenet
+
+# Security-sensitive files require explicit review
+/.github/workflows/ @warrenet
+/server/middleware/ @warrenet
+/server/validators.ts @warrenet
+vercel.json @warrenet
