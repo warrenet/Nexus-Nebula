@@ -3,29 +3,62 @@ import * as path from "path";
 import type { Trace } from "../types";
 
 const TRACES_DIR = path.resolve(process.cwd(), "backend", "traces");
+const MEMORY_STORE = new Map<string, Trace>();
+let shouldUseMemory = false;
 
-function ensureTracesDir(): void {
-  if (!fs.existsSync(TRACES_DIR)) {
-    fs.mkdirSync(TRACES_DIR, { recursive: true });
+function ensureTracesDir(): boolean {
+  if (shouldUseMemory) return false;
+  try {
+    if (!fs.existsSync(TRACES_DIR)) {
+      fs.mkdirSync(TRACES_DIR, { recursive: true });
+    }
+    return true;
+  } catch (error) {
+    if (!shouldUseMemory) {
+      console.warn(
+        "Could not create traces dir, falling back to in-memory store:",
+        error,
+      );
+      shouldUseMemory = true;
+    }
+    return false;
   }
 }
 
 export function saveTrace(trace: Trace): void {
-  ensureTracesDir();
-  const filePath = path.join(TRACES_DIR, `${trace.traceId}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(trace, null, 2), "utf-8");
+  MEMORY_STORE.set(trace.traceId, trace);
+
+  if (ensureTracesDir()) {
+    try {
+      const filePath = path.join(TRACES_DIR, `${trace.traceId}.json`);
+      fs.writeFileSync(filePath, JSON.stringify(trace, null, 2), "utf-8");
+    } catch (error) {
+      console.warn(`Failed to write trace ${trace.traceId} to disk:`, error);
+      shouldUseMemory = true;
+    }
+  }
 }
 
 export function getTrace(traceId: string): Trace | null {
-  ensureTracesDir();
-  const filePath = path.join(TRACES_DIR, `${traceId}.json`);
-
-  if (!fs.existsSync(filePath)) {
-    return null;
+  if (MEMORY_STORE.has(traceId)) {
+    return MEMORY_STORE.get(traceId) || null;
   }
 
-  const content = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(content) as Trace;
+  if (ensureTracesDir()) {
+    const filePath = path.join(TRACES_DIR, `${traceId}.json`);
+    if (!fs.existsSync(filePath)) {
+      return null;
+    }
+    try {
+      const content = fs.readFileSync(filePath, "utf-8");
+      const trace = JSON.parse(content) as Trace;
+      MEMORY_STORE.set(trace.traceId, trace); // Hydrate cache
+      return trace;
+    } catch (e) {
+      console.error(`Error reading trace ${traceId}:`, e);
+    }
+  }
+  return null;
 }
 
 export function updateTrace(
@@ -44,36 +77,61 @@ export function listTraces(
   limit = 50,
   offset = 0,
 ): { traces: Trace[]; total: number } {
-  ensureTracesDir();
+  // Combine memory and disk (deduplicated)
+  const allTraces = new Map<string, Trace>(MEMORY_STORE);
 
-  const files = fs
-    .readdirSync(TRACES_DIR)
-    .filter((f) => f.endsWith(".json"))
-    .sort((a, b) => {
-      const statA = fs.statSync(path.join(TRACES_DIR, a));
-      const statB = fs.statSync(path.join(TRACES_DIR, b));
-      return statB.mtime.getTime() - statA.mtime.getTime();
-    });
+  if (ensureTracesDir()) {
+    try {
+      const files = fs
+        .readdirSync(TRACES_DIR)
+        .filter((f) => f.endsWith(".json"));
 
-  const total = files.length;
-  const paginatedFiles = files.slice(offset, offset + limit);
-
-  const traces: Trace[] = [];
-  for (const file of paginatedFiles) {
-    const content = fs.readFileSync(path.join(TRACES_DIR, file), "utf-8");
-    traces.push(JSON.parse(content) as Trace);
+      for (const file of files) {
+        try {
+          const content = fs.readFileSync(path.join(TRACES_DIR, file), "utf-8");
+          const trace = JSON.parse(content) as Trace;
+          // Disk overwrites memory if newer? Or memory is fresher?
+          // Usually memory is fresher. Only add if not in memory.
+          if (!allTraces.has(trace.traceId)) {
+            allTraces.set(trace.traceId, trace);
+          }
+        } catch (e) {
+          // Ignore corrupted files
+        }
+      }
+    } catch (e) {
+      // Directory read failed
+      shouldUseMemory = true;
+    }
   }
 
-  return { traces, total };
+  const sortedTraces = Array.from(allTraces.values()).sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+
+  return {
+    traces: sortedTraces.slice(offset, offset + limit),
+    total: sortedTraces.length,
+  };
 }
 
 export function deleteTrace(traceId: string): boolean {
-  const filePath = path.join(TRACES_DIR, `${traceId}.json`);
-
-  if (!fs.existsSync(filePath)) {
-    return false;
+  let deleted = false;
+  if (MEMORY_STORE.has(traceId)) {
+    MEMORY_STORE.delete(traceId);
+    deleted = true;
   }
 
-  fs.unlinkSync(filePath);
-  return true;
+  if (ensureTracesDir()) {
+    const filePath = path.join(TRACES_DIR, `${traceId}.json`);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+        deleted = true;
+      } catch (e) {
+        console.error("Failed to delete trace file:", e);
+      }
+    }
+  }
+  return deleted;
 }
