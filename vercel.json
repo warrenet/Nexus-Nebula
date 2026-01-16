@@ -5,7 +5,9 @@
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "headers": [
     {
       "source": "/sw.js",
@@ -87,7 +89,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api|icons|splash|sw.js|manifest.webmanifest).*)",
+      "source": "/((?!api|icons|splash|sw.js|manifest.webmanifest|robots.txt|sitemap.xml).*)",
       "destination": "/"
     }
   ],

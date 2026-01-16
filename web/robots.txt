@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://nexus-nebula-one.vercel.app/sitemap.xml
+
+# Block API routes from crawlers
+Disallow: /api/
+Disallow: /_expo/
