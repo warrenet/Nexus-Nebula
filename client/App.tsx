@@ -1,8 +1,7 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -19,6 +18,19 @@ import {
   useKeyboardShortcuts,
 } from "@/components/KeyboardShortcuts";
 import { Colors } from "@/constants/theme";
+
+// Conditionally import KeyboardProvider only on native platforms
+// web doesn't need it and it may crash silently
+let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }>;
+if (Platform.OS !== "web") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  KeyboardProvider =
+    require("react-native-keyboard-controller").KeyboardProvider;
+} else {
+  KeyboardProvider = ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  );
+}
 
 const NexusTheme = {
   ...DarkTheme,
