@@ -43,7 +43,6 @@ const springConfig: WithSpringConfig = {
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 /**
  * GlowButton - Premium button with gradient border glow, haptic feedback,
