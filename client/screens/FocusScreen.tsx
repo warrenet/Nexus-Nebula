@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { View, StyleSheet, FlatList, Image, Animated } from "react-native";
 import ReanimatedAnimated, {
   FadeInDown,
@@ -13,6 +13,13 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
+import {
+  LiveActivityLog,
+  ConsensusMeter,
+  PhaseIndicator,
+  ActivityEvent,
+  SwarmPhase,
+} from "@/components/SwarmVisualization";
 import {
   Colors,
   Spacing,
@@ -41,6 +48,7 @@ interface SwarmStatus {
 function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -52,10 +60,12 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
   }, [fadeAnim, index]);
 
   useEffect(() => {
-    let animation: Animated.CompositeAnimation | null = null;
+    let shimmerAnimation: Animated.CompositeAnimation | null = null;
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
 
     if (agent.status === "running") {
-      animation = Animated.loop(
+      // Shimmer animation
+      shimmerAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(shimmerAnim, {
             toValue: 1,
@@ -69,18 +79,36 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
           }),
         ]),
       );
-      animation.start();
+      shimmerAnimation.start();
+
+      // Pulse animation for glowing effect
+      pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.02,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      pulseAnimation.start();
     } else {
       shimmerAnim.setValue(0);
+      pulseAnim.setValue(1);
     }
 
     return () => {
-      if (animation) {
-        animation.stop();
-      }
+      shimmerAnimation?.stop();
+      pulseAnimation?.stop();
       shimmerAnim.setValue(0);
+      pulseAnim.setValue(1);
     };
-  }, [agent.status, shimmerAnim]);
+  }, [agent.status, shimmerAnim, pulseAnim]);
 
   const getStatusColor = () => {
     switch (agent.status) {
@@ -110,7 +138,12 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
 
   const shimmerOpacity = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.6],
+    outputRange: [0.3, 0.8],
+  });
+
+  const glowOpacity = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.3],
   });
 
   return (
@@ -124,15 +157,39 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
         .damping(AnimationConfig.springDamping)
         .stiffness(AnimationConfig.springStiffness)}
     >
-      <Animated.View style={{ opacity: fadeAnim }}>
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ scale: pulseAnim }],
+        }}
+      >
         <GlassCard style={styles.agentCard}>
+          {/* Glow overlay for active agents */}
+          {agent.status === "running" && (
+            <Animated.View
+              style={[
+                styles.glowOverlay,
+                {
+                  opacity: glowOpacity,
+                  backgroundColor: Colors.dark.primaryGradientStart,
+                },
+              ]}
+            />
+          )}
+
           <View style={styles.agentHeader}>
             <View style={styles.agentIdContainer}>
-              <Feather
-                name="cpu"
-                size={16}
-                color={Colors.dark.primaryGradientStart}
-              />
+              <View
+                style={[
+                  styles.agentIcon,
+                  {
+                    backgroundColor: getStatusColor() + "20",
+                    borderColor: getStatusColor(),
+                  },
+                ]}
+              >
+                <Feather name="cpu" size={14} color={getStatusColor()} />
+              </View>
               <ThemedText style={styles.agentId}>{agent.id}</ThemedText>
             </View>
             <View
@@ -156,7 +213,7 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
 
           <ThemedText style={styles.modelName}>{agent.model}</ThemedText>
 
-          {agent.status === "running" ? (
+          {agent.status === "running" && (
             <Animated.View
               style={[styles.shimmerBar, { opacity: shimmerOpacity }]}
             >
@@ -164,32 +221,47 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
                 colors={[
                   Colors.dark.primaryGradientStart,
                   Colors.dark.primaryGradientEnd,
+                  Colors.dark.primaryGradientStart,
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.shimmerGradient}
               />
             </Animated.View>
-          ) : null}
+          )}
 
-          {agent.status === "completed" && agent.confidence !== undefined ? (
+          {agent.status === "completed" && agent.confidence !== undefined && (
             <View style={styles.metricsRow}>
               <View style={styles.metric}>
                 <ThemedText style={styles.metricLabel}>Confidence</ThemedText>
+                <View style={styles.confidenceBar}>
+                  <LinearGradient
+                    colors={[
+                      Colors.dark.primaryGradientStart,
+                      Colors.dark.primaryGradientEnd,
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.confidenceFill,
+                      { width: `${agent.confidence * 100}%` },
+                    ]}
+                  />
+                </View>
                 <ThemedText style={styles.metricValue}>
                   {(agent.confidence * 100).toFixed(1)}%
                 </ThemedText>
               </View>
-              {agent.latencyMs !== undefined ? (
+              {agent.latencyMs !== undefined && (
                 <View style={styles.metric}>
                   <ThemedText style={styles.metricLabel}>Latency</ThemedText>
                   <ThemedText style={styles.metricValue}>
                     {(agent.latencyMs / 1000).toFixed(2)}s
                   </ThemedText>
                 </View>
-              ) : null}
+              )}
             </View>
-          ) : null}
+          )}
         </GlassCard>
       </Animated.View>
     </ReanimatedAnimated.View>
@@ -199,6 +271,8 @@ function AgentCard({ agent, index }: { agent: SwarmAgent; index: number }) {
 export default function FocusScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
+  const lastEventRef = useRef<string | null>(null);
 
   const { data: activeSwarms } = useQuery<SwarmStatus[]>({
     queryKey: ["/api/swarms/active"],
@@ -207,6 +281,97 @@ export default function FocusScreen() {
 
   const activeSwarm = activeSwarms?.[0];
   const hasAgents = activeSwarm && activeSwarm.agents.length > 0;
+
+  // Derive current phase from swarm status
+  const currentPhase: SwarmPhase = useMemo(() => {
+    if (!activeSwarm) return "initializing";
+    switch (activeSwarm.status) {
+      case "pending":
+        return "initializing";
+      case "running":
+        return activeSwarm.currentIteration > 1 ? "critiquing" : "analyzing";
+      case "synthesizing":
+        return "synthesizing";
+      case "completed":
+        return "complete";
+      default:
+        return "analyzing";
+    }
+  }, [activeSwarm]);
+
+  // Calculate average consensus from completed agents
+  const consensusScore = useMemo(() => {
+    if (!activeSwarm) return 0;
+    const completedAgents = activeSwarm.agents.filter(
+      (a) => a.status === "completed" && a.confidence !== undefined,
+    );
+    if (completedAgents.length === 0) return 0;
+    return (
+      completedAgents.reduce((sum, a) => sum + (a.confidence ?? 0), 0) /
+      completedAgents.length
+    );
+  }, [activeSwarm]);
+
+  // Generate activity events from swarm status changes
+  useEffect(() => {
+    if (!activeSwarm) return;
+
+    const newEvents: ActivityEvent[] = [];
+    const eventKey = `${activeSwarm.traceId}-${activeSwarm.status}-${activeSwarm.progress}`;
+
+    if (lastEventRef.current !== eventKey) {
+      lastEventRef.current = eventKey;
+
+      // Add status message as event
+      if (activeSwarm.message) {
+        newEvents.push({
+          id: `msg-${Date.now()}`,
+          type: "info",
+          message: activeSwarm.message,
+          timestamp: new Date(),
+        });
+      }
+
+      // Add agent status events
+      activeSwarm.agents.forEach((agent) => {
+        if (agent.status === "completed" && agent.confidence !== undefined) {
+          const existing = activityEvents.find(
+            (e) =>
+              e.agentId === agent.id &&
+              e.message.includes("completed") &&
+              e.message.includes(`${(agent.confidence * 100).toFixed(1)}%`),
+          );
+          if (!existing) {
+            newEvents.push({
+              id: `agent-${agent.id}-${Date.now()}`,
+              type: "success",
+              message: `completed with ${(agent.confidence * 100).toFixed(1)}% confidence`,
+              timestamp: new Date(),
+              agentId: agent.id,
+            });
+          }
+        }
+      });
+
+      if (newEvents.length > 0) {
+        setActivityEvents((prev) => [...prev, ...newEvents].slice(-20)); // Keep last 20 events
+      }
+    }
+  }, [activeSwarm, activityEvents]);
+
+  // Reset events when swarm changes
+  useEffect(() => {
+    if (activeSwarm?.traceId) {
+      setActivityEvents([
+        {
+          id: `start-${Date.now()}`,
+          type: "info",
+          message: "Mission execution started",
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  }, [activeSwarm?.traceId]);
 
   return (
     <View style={styles.container}>
@@ -232,36 +397,54 @@ export default function FocusScreen() {
         </View>
       ) : (
         <>
-          <GlassCard
+          {/* Phase Indicator */}
+          <View
             style={[
-              styles.statusCard,
-              { marginTop: headerHeight + Spacing.xl },
+              styles.phaseWrapper,
+              { marginTop: headerHeight + Spacing.md },
             ]}
           >
-            <View style={styles.progressHeader}>
-              <ThemedText style={styles.progressLabel}>
-                {activeSwarm.message}
-              </ThemedText>
-              <ThemedText style={styles.progressValue}>
-                {activeSwarm.progress}%
-              </ThemedText>
-            </View>
-            <View style={styles.progressBar}>
-              <LinearGradient
-                colors={[
-                  Colors.dark.primaryGradientStart,
-                  Colors.dark.primaryGradientEnd,
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.progressFill,
-                  { width: `${activeSwarm.progress}%` },
-                ]}
-              />
-            </View>
-          </GlassCard>
+            <PhaseIndicator currentPhase={currentPhase} />
+          </View>
 
+          {/* Progress and Consensus Row */}
+          <View style={styles.metricsRow2}>
+            <GlassCard style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <ThemedText style={styles.progressLabel}>
+                  {activeSwarm.message}
+                </ThemedText>
+                <ThemedText style={styles.progressValue}>
+                  {activeSwarm.progress}%
+                </ThemedText>
+              </View>
+              <View style={styles.progressBar}>
+                <LinearGradient
+                  colors={[
+                    Colors.dark.primaryGradientStart,
+                    Colors.dark.primaryGradientEnd,
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.progressFill,
+                    { width: `${activeSwarm.progress}%` },
+                  ]}
+                />
+              </View>
+            </GlassCard>
+
+            <GlassCard style={styles.consensusCard}>
+              <ConsensusMeter value={consensusScore} />
+            </GlassCard>
+          </View>
+
+          {/* Live Activity Log */}
+          <View style={styles.activityWrapper}>
+            <LiveActivityLog events={activityEvents} maxHeight={140} />
+          </View>
+
+          {/* Agent Cards */}
           <FlatList
             data={activeSwarm.agents}
             keyExtractor={(item) => item.id}
@@ -307,9 +490,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: Spacing.sm,
   },
-  statusCard: {
+  phaseWrapper: {
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  metricsRow2: {
+    flexDirection: "row",
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  progressCard: {
+    flex: 2,
+  },
+  consensusCard: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   progressHeader: {
     flexDirection: "row",
@@ -320,6 +517,8 @@ const styles = StyleSheet.create({
   progressLabel: {
     ...Typography.body,
     color: Colors.dark.text,
+    flex: 1,
+    fontSize: 13,
   },
   progressValue: {
     ...Typography.body,
@@ -336,12 +535,25 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 3,
   },
+  activityWrapper: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
   listContent: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
   },
   agentCard: {
     marginBottom: 0,
+    overflow: "hidden",
+  },
+  glowOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: BorderRadius.md,
   },
   agentHeader: {
     flexDirection: "row",
@@ -353,6 +565,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+  },
+  agentIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
   },
   agentId: {
     ...Typography.body,
@@ -400,7 +620,18 @@ const styles = StyleSheet.create({
   metricLabel: {
     ...Typography.caption,
     color: Colors.dark.textMuted,
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  confidenceBar: {
+    height: 4,
+    backgroundColor: Colors.dark.backgroundTertiary,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 4,
+  },
+  confidenceFill: {
+    height: "100%",
+    borderRadius: 2,
   },
   metricValue: {
     ...Typography.body,
