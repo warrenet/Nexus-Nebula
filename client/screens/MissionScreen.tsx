@@ -25,6 +25,7 @@ import { apiRequest } from "@/lib/query-client";
 import { Colors, Spacing, BorderRadius, Typography } from "@/constants/theme";
 import { NebulaBackground } from "@/components/NebulaBackground";
 import { MissionTemplates } from "@/components/MissionTemplates";
+import { StartHereButton } from "@/components/StartHereButton";
 import type { MainTabParamList } from "@/navigation/MainTabNavigator";
 
 interface MissionResponse {
@@ -356,6 +357,9 @@ export default function MissionScreen() {
           </Pressable>
         </Animated.View>
       </View>
+
+      {/* Start Here FAB */}
+      <StartHereButton onPress={() => navigation.navigate("StartHere")} />
     </View>
   );
 }

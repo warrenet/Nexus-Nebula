@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import MissionScreen from "@/screens/MissionScreen";
 import FocusScreen from "@/screens/FocusScreen";
 import TraceScreen from "@/screens/TraceScreen";
+import StartHereScreen from "@/screens/StartHereScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { Colors } from "@/constants/theme";
 
@@ -15,6 +16,7 @@ export type MainTabParamList = {
   MissionTab: undefined;
   FocusTab: undefined;
   TraceTab: undefined;
+  StartHere: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -165,6 +167,23 @@ export default function MainTabNavigator() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
           },
+        }}
+      />
+      <Tab.Screen
+        name="StartHere"
+        component={StartHereScreen}
+        options={{
+          title: "Start Here",
+          headerTitle: "Welcome",
+          tabBarButton: () => null,
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name="help-circle"
+              color={color}
+              size={size}
+              focused={focused}
+            />
+          ),
         }}
       />
     </Tab.Navigator>
