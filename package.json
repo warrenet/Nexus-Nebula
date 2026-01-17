@@ -21,7 +21,8 @@
     "prepare": "husky",
     "dev": "concurrently -n server,expo -c blue,green \"npm run server:dev\" \"npm run expo:dev\"",
     "doctor": "node scripts/doctor.js",
-    "smoke-test": "node scripts/smoke-test.js"
+    "smoke-test": "node scripts/smoke-test.js",
+    "verify": "npm run lint && npm run check:types && npm test"
   },
   "dependencies": {
     "@expo/metro-runtime": "^6.1.2",
@@ -75,6 +76,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^24.10.0",
     "@types/react": "~19.1.0",
+    "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.0.17",
     "babel-plugin-module-resolver": "^5.0.2",
@@ -88,6 +90,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "3.6.2",
+    "supertest": "^7.2.2",
     "typescript": "~5.9.2",
     "vitest": "^4.0.17"
   },

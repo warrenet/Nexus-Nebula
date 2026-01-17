@@ -4,11 +4,13 @@
  * Nexus Nebula - Doctor Script
  * Checks environment sanity before development
  * Run with: npm run doctor
+ * Run with: npm run doctor -- --live  (checks running server health)
  */
 
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 const colors = {
   reset: "\x1b[0m",
@@ -22,8 +24,18 @@ const CHECK = `${colors.green}✓${colors.reset}`;
 const FAIL = `${colors.red}✗${colors.reset}`;
 const WARN = `${colors.yellow}⚠${colors.reset}`;
 
+const isLiveCheck = process.argv.includes("--live");
+const HEALTH_TIMEOUT_MS = parseInt(
+  process.env.HEALTH_TIMEOUT_MS || "30000",
+  10,
+);
+
 console.log(`\n${colors.cyan}🩺 Nexus Nebula Doctor${colors.reset}\n`);
-console.log("Checking environment sanity...\n");
+console.log(
+  isLiveCheck
+    ? "Checking server health...\n"
+    : "Checking environment sanity...\n",
+);
 
 let hasErrors = false;
 let hasWarnings = false;
@@ -139,34 +151,129 @@ function checkPort5000() {
   }
 }
 
-// Run all checks
-checkNodeVersion();
-checkNpmVersion();
-checkEnvFile();
-checkDependencies();
-checkTypeScript();
-checkPort5000();
+// 7. Check server health (live mode)
+function checkServerHealth() {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const maxRetries = Math.ceil(HEALTH_TIMEOUT_MS / 1000);
+    let retries = 0;
 
-// Summary
-console.log("\n" + "─".repeat(40) + "\n");
+    function attempt() {
+      const req = http.get("http://127.0.0.1:5000/api/health", (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          if (res.statusCode === 200) {
+            try {
+              const json = JSON.parse(data);
+              console.log(`${CHECK} Server health: ${json.status}`);
+              console.log(`   Version: ${json.version}`);
+              console.log(`   Timestamp: ${json.timestamp}`);
+              resolve(true);
+            } catch {
+              retry();
+            }
+          } else {
+            retry();
+          }
+        });
+      });
 
-if (hasErrors) {
-  console.log(
-    `${colors.red}❌ Doctor found errors. Fix them before proceeding.${colors.reset}\n`,
-  );
-  process.exit(1);
-} else if (hasWarnings) {
-  console.log(
-    `${colors.yellow}⚠️  Doctor found warnings. You may proceed but check above.${colors.reset}\n`,
-  );
-  process.exit(0);
-} else {
-  console.log(
-    `${colors.green}✅ All checks passed! Ready for development.${colors.reset}\n`,
-  );
-  console.log("Quick start:");
-  console.log("  npm run dev        # Start server + client");
-  console.log("  npm run server:dev # Start server only");
-  console.log("  npm run expo:dev   # Start Expo client\n");
-  process.exit(0);
+      req.on("error", retry);
+      req.setTimeout(2000, () => {
+        req.destroy();
+        retry();
+      });
+    }
+
+    function retry() {
+      retries++;
+      if (retries >= maxRetries) {
+        console.log(
+          `${FAIL} Server health check failed (timeout after ${HEALTH_TIMEOUT_MS}ms)`,
+        );
+        hasErrors = true;
+        resolve(false);
+        return;
+      }
+      console.log(`   ⏳ Waiting for server... (${retries}/${maxRetries})`);
+      setTimeout(attempt, 1000);
+    }
+
+    attempt();
+  });
 }
+
+// 8. Check metrics endpoint (live mode)
+function checkMetrics() {
+  return new Promise((resolve) => {
+    const req = http.get("http://127.0.0.1:5000/metrics", (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        if (res.statusCode === 200 && data.includes("nexus_missions_total")) {
+          console.log(`${CHECK} Metrics endpoint: Prometheus format`);
+          resolve(true);
+        } else {
+          console.log(`${FAIL} Metrics endpoint: Invalid format`);
+          hasErrors = true;
+          resolve(false);
+        }
+      });
+    });
+
+    req.on("error", () => {
+      console.log(`${FAIL} Metrics endpoint: Not reachable`);
+      hasErrors = true;
+      resolve(false);
+    });
+    req.setTimeout(5000, () => {
+      req.destroy();
+      console.log(`${FAIL} Metrics endpoint: Timeout`);
+      hasErrors = true;
+      resolve(false);
+    });
+  });
+}
+
+// Run checks
+async function runChecks() {
+  if (isLiveCheck) {
+    // Live mode: check running server
+    await checkServerHealth();
+    await checkMetrics();
+  } else {
+    // Static mode: check environment
+    checkNodeVersion();
+    checkNpmVersion();
+    checkEnvFile();
+    checkDependencies();
+    checkTypeScript();
+    checkPort5000();
+  }
+
+  // Summary
+  console.log("\n" + "─".repeat(40) + "\n");
+
+  if (hasErrors) {
+    console.log(
+      `${colors.red}❌ Doctor found errors. Fix them before proceeding.${colors.reset}\n`,
+    );
+    process.exit(1);
+  } else if (hasWarnings) {
+    console.log(
+      `${colors.yellow}⚠️  Doctor found warnings. You may proceed but check above.${colors.reset}\n`,
+    );
+    process.exit(0);
+  } else {
+    console.log(`${colors.green}✅ All checks passed!${colors.reset}\n`);
+    if (!isLiveCheck) {
+      console.log("Quick start:");
+      console.log("  npm run dev        # Start server + client");
+      console.log("  npm run doctor -- --live  # Check running server\n");
+    }
+    process.exit(0);
+  }
+}
+
+runChecks();

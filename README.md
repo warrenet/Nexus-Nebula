@@ -51,12 +51,17 @@ cd Nexus-Nebula
 npm install
 
 # Set up environment variables
-cp .env.example .env.local
-# Add your OPENROUTER_API_KEY to .env.local
+cp .env.example .env
+# Add your OPENROUTER_API_KEY to .env
 
-# Start development
-npm run server:dev    # Terminal 1: Start backend
-npm run expo:dev      # Terminal 2: Start frontend
+# Check environment sanity
+npm run doctor
+
+# Start development (one command!)
+npm run dev
+
+# Optional: check server health once running
+npm run doctor -- --live
 ```
 
 ### Production Build
