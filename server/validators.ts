@@ -57,6 +57,17 @@ export const PaginationSchema = z.object({
 
 export type ValidatedPagination = z.infer<typeof PaginationSchema>;
 
+// Trace Query schema with filters
+export const TraceQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  status: z.enum(["pending", "running", "completed", "failed"]).optional(),
+  since: z.coerce.date().optional(),
+  until: z.coerce.date().optional(),
+});
+
+export type ValidatedTraceQuery = z.infer<typeof TraceQuerySchema>;
+
 /**
  * Validate request body and return structured result
  */

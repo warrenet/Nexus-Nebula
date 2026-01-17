@@ -76,6 +76,7 @@ export function updateTrace(
 export function listTraces(
   limit = 50,
   offset = 0,
+  filters?: { status?: string; since?: Date; until?: Date },
 ): { traces: Trace[]; total: number } {
   // Combine memory and disk (deduplicated)
   const allTraces = new Map<string, Trace>(MEMORY_STORE);
@@ -105,7 +106,20 @@ export function listTraces(
     }
   }
 
-  const sortedTraces = Array.from(allTraces.values()).sort(
+  // Apply filters
+  let filtered = Array.from(allTraces.values());
+
+  if (filters?.status) {
+    filtered = filtered.filter((t) => t.status === filters.status);
+  }
+  if (filters?.since) {
+    filtered = filtered.filter((t) => new Date(t.timestamp) >= filters.since!);
+  }
+  if (filters?.until) {
+    filtered = filtered.filter((t) => new Date(t.timestamp) <= filters.until!);
+  }
+
+  const sortedTraces = filtered.sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 

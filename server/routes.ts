@@ -15,7 +15,7 @@ import {
   MissionRequestSchema,
   EstimateRequestSchema,
   TraceIdSchema,
-  PaginationSchema,
+  TraceQuerySchema,
   validateBody,
   validateParams,
   validateQuery,
@@ -185,14 +185,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/traces", (req: Request, res: Response) => {
     try {
-      const queryValidation = validateQuery(PaginationSchema, req.query);
+      const queryValidation = validateQuery(TraceQuerySchema, req.query);
       if (!queryValidation.success) {
         res.status(400).json({ error: queryValidation.error });
         return;
       }
-      const { limit, offset } = queryValidation.data;
+      const { limit, offset, status, since, until } = queryValidation.data;
 
-      const result = listTraces(limit, offset);
+      const result = listTraces(limit, offset, { status, since, until });
       res.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
