@@ -18,7 +18,11 @@ export const MissionRequestSchema = z.object({
       message: "Mission contains potentially unsafe content",
     }),
   swarmSize: z.number().int().min(1).max(20).optional().default(8),
-  maxBudget: z.number().min(0.01).max(5.0).optional().default(1.25),
+  maxBudget: z.number().min(0).max(10.0).optional().default(1.25),
+  modelTier: z
+    .enum(["free", "balanced", "premium"])
+    .optional()
+    .default("balanced"),
 });
 
 export type ValidatedMissionRequest = z.infer<typeof MissionRequestSchema>;
@@ -30,6 +34,10 @@ export const EstimateRequestSchema = z.object({
     .min(1, "Mission is required")
     .max(10000, "Mission exceeds maximum length"),
   swarmSize: z.number().int().min(1).max(20).optional().default(8),
+  modelTier: z
+    .enum(["free", "balanced", "premium"])
+    .optional()
+    .default("balanced"),
 });
 
 export type ValidatedEstimateRequest = z.infer<typeof EstimateRequestSchema>;

@@ -10,6 +10,7 @@ import type {
   SwarmStatus,
   SwarmAgent,
   RedTeamFlag,
+  ModelTier,
 } from "../types";
 import { scanContent, shouldBlockExecution, sanitizeForTrace } from "./redteam";
 import { saveTrace } from "./trace_store";
@@ -48,10 +49,60 @@ const MIN_CONSENSUS_IMPROVEMENT = 0.02; // Minimum improvement required per iter
 const GUARDIAN_PATIENCE = 2; // Number of stagnant iterations before graceful fail
 
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+  // Free models (per OpenRouter)
   "google/gemini-2.0-flash-exp:free": { input: 0, output: 0 },
+  "meta-llama/llama-3.3-70b-instruct:free": { input: 0, output: 0 },
+  // Paid models
   "anthropic/claude-3.5-sonnet": { input: 0.003, output: 0.015 },
   "openai/gpt-4o": { input: 0.005, output: 0.015 },
 };
+
+// Model tier configurations
+const TIER_CONFIGS: Record<ModelTier, SwarmConfig> = {
+  free: {
+    startAgents: 4,
+    expandAgents: 6,
+    maxAgents: 8,
+    freeModel: "meta-llama/llama-3.3-70b-instruct:free",
+    synthesisModel: "google/gemini-2.0-flash-exp:free", // Free synthesis too!
+    fallbackModel: "google/gemini-2.0-flash-exp:free",
+    maxBudget: 0, // $0 cost
+    throttleMs: 6000,
+    maxRetries: 3,
+    baseBackoffMs: 1000,
+    maxBackoffMs: 16000,
+  },
+  balanced: {
+    startAgents: 8,
+    expandAgents: 12,
+    maxAgents: 20,
+    freeModel: "google/gemini-2.0-flash-exp:free",
+    synthesisModel: "anthropic/claude-3.5-sonnet",
+    fallbackModel: "openai/gpt-4o",
+    maxBudget: 2.0,
+    throttleMs: 6000,
+    maxRetries: 5,
+    baseBackoffMs: 1000,
+    maxBackoffMs: 32000,
+  },
+  premium: {
+    startAgents: 12,
+    expandAgents: 16,
+    maxAgents: 24,
+    freeModel: "anthropic/claude-3.5-sonnet", // Premium uses paid for all
+    synthesisModel: "anthropic/claude-3.5-sonnet",
+    fallbackModel: "openai/gpt-4o",
+    maxBudget: 10.0,
+    throttleMs: 3000,
+    maxRetries: 5,
+    baseBackoffMs: 500,
+    maxBackoffMs: 16000,
+  },
+};
+
+export function getConfigForTier(tier: ModelTier = "balanced"): SwarmConfig {
+  return TIER_CONFIGS[tier] || TIER_CONFIGS.balanced;
+}
 
 const activeSwarms: Map<string, SwarmStatus> = new Map();
 
@@ -506,10 +557,12 @@ export async function executeMission(
   mission: string,
   swarmSize?: number,
   maxBudget?: number,
+  modelTier: ModelTier = "balanced",
 ): Promise<Trace> {
+  const tierConfig = getConfigForTier(modelTier);
   const config: SwarmConfig = {
-    ...DEFAULT_CONFIG,
-    maxBudget: maxBudget ?? DEFAULT_CONFIG.maxBudget,
+    ...tierConfig,
+    maxBudget: maxBudget ?? tierConfig.maxBudget,
   };
 
   const agentCount = Math.min(

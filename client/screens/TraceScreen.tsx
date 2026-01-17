@@ -8,6 +8,8 @@ import {
   Image,
   Animated,
   RefreshControl,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -25,49 +27,159 @@ import {
   Typography,
   Fonts,
 } from "@/constants/theme";
-
-interface RedTeamFlag {
-  flagId: string;
-  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  categories: string[];
-  explanation: string;
-  source: string;
-}
-
-interface AgentResponse {
-  agentId: string;
-  model: string;
-  response: string;
-  confidence: number;
-  latencyMs: number;
-}
-
-interface Iteration {
-  iterationId: number;
-  agentResponses: AgentResponse[];
-  consensusScore: number;
-  timestamp: string;
-}
-
-interface Trace {
-  traceId: string;
-  timestamp: string;
-  mission: string;
-  iterations: Iteration[];
-  branchScores: Record<string, number>;
-  redTeamFlags: RedTeamFlag[];
-  finalPosteriorWeights: Record<string, number>;
-  synthesisResult: string;
-  costEstimate: number;
-  actualCost: number;
-  durationMs: number;
-  status: string;
-  error?: string;
-}
+import { exportTrace, ExportFormat, Trace } from "@/lib/exportUtils";
 
 interface TracesResponse {
   traces: Trace[];
   total: number;
+}
+
+// Export Menu Component
+function ExportMenu({
+  visible,
+  onClose,
+  onExport,
+  position,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onExport: (format: ExportFormat, action: "copy" | "download") => void;
+  position: { x: number; y: number };
+}) {
+  if (!visible) return null;
+
+  const exportOptions: {
+    format: ExportFormat;
+    label: string;
+    icon: keyof typeof Feather.glyphMap;
+  }[] = [
+    { format: "markdown", label: "Markdown", icon: "file-text" },
+    { format: "plaintext", label: "Plain Text", icon: "align-left" },
+    { format: "json", label: "JSON", icon: "code" },
+  ];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.exportOverlay} onPress={onClose}>
+        <View
+          style={[
+            styles.exportMenu,
+            {
+              top: Math.min(position.y, 400),
+              right: 20,
+            },
+          ]}
+        >
+          <ThemedText style={styles.exportMenuTitle}>Export Trace</ThemedText>
+          {exportOptions.map((option) => (
+            <View key={option.format} style={styles.exportOptionGroup}>
+              <View style={styles.exportOptionHeader}>
+                <Feather
+                  name={option.icon}
+                  size={14}
+                  color={Colors.dark.textSecondary}
+                />
+                <ThemedText style={styles.exportOptionLabel}>
+                  {option.label}
+                </ThemedText>
+              </View>
+              <View style={styles.exportActions}>
+                <TouchableOpacity
+                  style={styles.exportActionButton}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onExport(option.format, "copy");
+                  }}
+                >
+                  <Feather
+                    name="copy"
+                    size={14}
+                    color={Colors.dark.primaryGradientStart}
+                  />
+                  <ThemedText style={styles.exportActionText}>Copy</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.exportActionButton}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onExport(option.format, "download");
+                  }}
+                >
+                  <Feather
+                    name="download"
+                    size={14}
+                    color={Colors.dark.primaryGradientStart}
+                  />
+                  <ThemedText style={styles.exportActionText}>
+                    Download
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// Toast notification for export feedback
+function ExportToast({
+  visible,
+  message,
+  success,
+}: {
+  visible: boolean;
+  message: string;
+  success: boolean;
+}) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2000),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, fadeAnim]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.toast,
+        {
+          opacity: fadeAnim,
+          backgroundColor: success
+            ? Colors.dark.success + "E0"
+            : Colors.dark.error + "E0",
+        },
+      ]}
+    >
+      <Feather
+        name={success ? "check-circle" : "x-circle"}
+        size={16}
+        color={Colors.dark.text}
+      />
+      <ThemedText style={styles.toastText}>{message}</ThemedText>
+    </Animated.View>
+  );
 }
 
 function TimelineNode({
@@ -75,11 +187,13 @@ function TimelineNode({
   isExpanded,
   onToggle,
   index,
+  onExportPress,
 }: {
   trace: Trace;
   isExpanded: boolean;
   onToggle: () => void;
   index: number;
+  onExportPress: (trace: Trace, event: { pageY: number }) => void;
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -161,11 +275,29 @@ function TimelineNode({
                 </ThemedText>
               </View>
             </View>
-            <Feather
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={Colors.dark.textSecondary}
-            />
+            <View style={styles.traceHeaderActions}>
+              <Pressable
+                style={styles.exportButton}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  Haptics.selectionAsync();
+                  onExportPress(trace, { pageY: 200 });
+                }}
+                accessibilityLabel="Export trace"
+                accessibilityHint="Opens export options for this trace"
+              >
+                <Feather
+                  name="share"
+                  size={16}
+                  color={Colors.dark.textSecondary}
+                />
+              </Pressable>
+              <Feather
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={Colors.dark.textSecondary}
+              />
+            </View>
           </Pressable>
 
           {isExpanded ? (
@@ -293,6 +425,12 @@ export default function TraceScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [exportMenuVisible, setExportMenuVisible] = useState(false);
+  const [exportMenuPosition, setExportMenuPosition] = useState({ x: 0, y: 0 });
+  const [selectedTrace, setSelectedTrace] = useState<Trace | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSuccess, setToastSuccess] = useState(true);
   const queryClient = useQueryClient();
 
   const { data: tracesData } = useQuery<TracesResponse>({
@@ -312,6 +450,29 @@ export default function TraceScreen() {
 
   const toggleExpand = (traceId: string) => {
     setExpandedTraceId((prev) => (prev === traceId ? null : traceId));
+  };
+
+  const handleExportPress = (trace: Trace, event: { pageY: number }) => {
+    setSelectedTrace(trace);
+    setExportMenuPosition({ x: 0, y: event.pageY });
+    setExportMenuVisible(true);
+  };
+
+  const handleExport = async (
+    format: ExportFormat,
+    action: "copy" | "download",
+  ) => {
+    if (!selectedTrace) return;
+
+    setExportMenuVisible(false);
+    const result = await exportTrace(selectedTrace, format, action);
+
+    setToastMessage(result.message);
+    setToastSuccess(result.success);
+    setToastVisible(true);
+
+    // Reset toast visibility after animation completes
+    setTimeout(() => setToastVisible(false), 2500);
   };
 
   return (
@@ -346,6 +507,7 @@ export default function TraceScreen() {
               isExpanded={expandedTraceId === item.traceId}
               onToggle={() => toggleExpand(item.traceId)}
               index={index}
+              onExportPress={handleExportPress}
             />
           )}
           contentContainerStyle={[
@@ -368,6 +530,19 @@ export default function TraceScreen() {
           accessibilityHint="Pull down to refresh. Double tap a trace to expand details."
         />
       )}
+
+      <ExportMenu
+        visible={exportMenuVisible}
+        onClose={() => setExportMenuVisible(false)}
+        onExport={handleExport}
+        position={exportMenuPosition}
+      />
+
+      <ExportToast
+        visible={toastVisible}
+        message={toastMessage}
+        success={toastSuccess}
+      />
     </View>
   );
 }
@@ -435,6 +610,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginRight: Spacing.sm,
+  },
+  traceHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  exportButton: {
+    padding: Spacing.xs,
+    borderRadius: BorderRadius.xs,
   },
   statusIndicator: {
     width: 8,
@@ -541,5 +725,79 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     width: 45,
     textAlign: "right",
+  },
+  // Export menu styles
+  exportOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  exportMenu: {
+    position: "absolute",
+    backgroundColor: Colors.dark.backgroundSecondary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: Colors.dark.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  exportMenuTitle: {
+    ...Typography.body,
+    fontWeight: "600",
+    color: Colors.dark.text,
+    marginBottom: Spacing.md,
+  },
+  exportOptionGroup: {
+    marginBottom: Spacing.md,
+  },
+  exportOptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  exportOptionLabel: {
+    ...Typography.caption,
+    color: Colors.dark.textSecondary,
+  },
+  exportActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginLeft: Spacing.lg,
+  },
+  exportActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xs,
+    backgroundColor: Colors.dark.backgroundTertiary,
+  },
+  exportActionText: {
+    ...Typography.caption,
+    color: Colors.dark.primaryGradientStart,
+    fontWeight: "500",
+  },
+  // Toast styles
+  toast: {
+    position: "absolute",
+    bottom: 100,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  toastText: {
+    ...Typography.body,
+    color: Colors.dark.text,
+    flex: 1,
   },
 });

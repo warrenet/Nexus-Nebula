@@ -1,3 +1,5 @@
+export type ModelTier = "free" | "balanced" | "premium";
+
 export interface SwarmConfig {
   startAgents: number;
   expandAgents: number;
@@ -61,6 +63,7 @@ export interface MissionRequest {
   mission: string;
   swarmSize?: number;
   maxBudget?: number;
+  modelTier?: ModelTier;
 }
 
 export interface MissionResponse {

@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.status(400).json({ error: validation.error });
           return;
         }
-        const { mission, swarmSize, maxBudget } = validation.data;
+        const { mission, swarmSize, maxBudget, modelTier } = validation.data;
 
         // Smart Tiering: Classify as Task (free) or Mission (Bayesian Swarm)
         const classification = classifyInput(mission);
@@ -71,7 +71,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Mission path: Use Bayesian Swarm
-        const trace = await executeMission(mission, swarmSize, maxBudget);
+        const trace = await executeMission(
+          mission,
+          swarmSize,
+          maxBudget,
+          modelTier || "balanced",
+        );
 
         res.json({
           traceId: trace.traceId,

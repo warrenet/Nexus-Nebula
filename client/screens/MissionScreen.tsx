@@ -45,6 +45,22 @@ interface CostEstimate {
   withinBudget: boolean;
 }
 
+type ModelTier = "free" | "balanced" | "premium";
+
+const TIER_CONFIG = {
+  free: { label: "Free", icon: "zap" as const, color: Colors.dark.success },
+  balanced: {
+    label: "Balanced",
+    icon: "activity" as const,
+    color: Colors.dark.warning,
+  },
+  premium: {
+    label: "Premium",
+    icon: "star" as const,
+    color: Colors.dark.primaryGradientStart,
+  },
+};
+
 export default function MissionScreen() {
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
@@ -52,6 +68,7 @@ export default function MissionScreen() {
   const queryClient = useQueryClient();
 
   const [mission, setMission] = useState("");
+  const [modelTier, setModelTier] = useState<ModelTier>("balanced");
   const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const inputRef = useRef<TextInput>(null);
@@ -61,7 +78,8 @@ export default function MissionScreen() {
     mutationFn: async (missionText: string) => {
       const response = await apiRequest("POST", "/api/mission/execute", {
         mission: missionText,
-        swarmSize: 8,
+        swarmSize: modelTier === "premium" ? 12 : 8,
+        modelTier,
       });
       return response.json() as Promise<MissionResponse>;
     },
@@ -76,22 +94,26 @@ export default function MissionScreen() {
     },
   });
 
-  const estimateCost = useCallback(async (text: string) => {
-    if (text.length < 10) {
-      setCostEstimate(null);
-      return;
-    }
-    try {
-      const response = await apiRequest("POST", "/api/mission/estimate", {
-        mission: text,
-        swarmSize: 8,
-      });
-      const data = (await response.json()) as CostEstimate;
-      setCostEstimate(data);
-    } catch {
-      setCostEstimate(null);
-    }
-  }, []);
+  const estimateCost = useCallback(
+    async (text: string) => {
+      if (text.length < 10) {
+        setCostEstimate(null);
+        return;
+      }
+      try {
+        const response = await apiRequest("POST", "/api/mission/estimate", {
+          mission: text,
+          swarmSize: modelTier === "premium" ? 12 : 8,
+          modelTier,
+        });
+        const data = (await response.json()) as CostEstimate;
+        setCostEstimate(data);
+      } catch {
+        setCostEstimate(null);
+      }
+    },
+    [modelTier],
+  );
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -187,6 +209,53 @@ export default function MissionScreen() {
         ) : null}
 
         {isEmpty ? <MissionTemplates onSelectTemplate={setMission} /> : null}
+
+        {/* Model Tier Toggle */}
+        <View style={styles.tierToggleContainer}>
+          <ThemedText style={styles.tierLabel}>Model Tier</ThemedText>
+          <View style={styles.tierToggle}>
+            {(["free", "balanced", "premium"] as const).map((tier) => {
+              const config = TIER_CONFIG[tier];
+              const isSelected = modelTier === tier;
+              return (
+                <Pressable
+                  key={tier}
+                  style={[
+                    styles.tierButton,
+                    isSelected && styles.tierButtonActive,
+                    isSelected && { borderColor: config.color },
+                  ]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setModelTier(tier);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${config.label} tier`}
+                >
+                  <Feather
+                    name={config.icon}
+                    size={14}
+                    color={isSelected ? config.color : Colors.dark.textMuted}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.tierButtonText,
+                      isSelected && { color: config.color },
+                    ]}
+                  >
+                    {config.label}
+                  </ThemedText>
+                  {tier === "free" && (
+                    <View style={styles.freeBadge}>
+                      <ThemedText style={styles.freeBadgeText}>$0</ThemedText>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         <GlassCard style={styles.inputCard}>
           <ThemedText style={styles.inputLabel}>Mission Objective</ThemedText>
@@ -409,5 +478,54 @@ const styles = StyleSheet.create({
     color: Colors.dark.buttonText,
     opacity: 0.6,
     marginLeft: Spacing.sm,
+  },
+  tierToggleContainer: {
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  tierLabel: {
+    ...Typography.caption,
+    color: Colors.dark.textMuted,
+    marginBottom: Spacing.sm,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  tierToggle: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  tierButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.dark.glassBorder,
+    backgroundColor: Colors.dark.glassBackground,
+  },
+  tierButtonActive: {
+    borderWidth: 2,
+    backgroundColor: Colors.dark.backgroundTertiary,
+  },
+  tierButtonText: {
+    ...Typography.caption,
+    color: Colors.dark.textMuted,
+    fontWeight: "500",
+  },
+  freeBadge: {
+    backgroundColor: Colors.dark.success + "30",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 2,
+  },
+  freeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.dark.success,
   },
 });
