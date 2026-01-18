@@ -5,9 +5,7 @@
   "buildCommand": "npx expo export -p web && node scripts/fix-web-export.js",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "regions": [
-    "iad1"
-  ],
+  "regions": ["iad1"],
   "headers": [
     {
       "source": "/sw.js",
