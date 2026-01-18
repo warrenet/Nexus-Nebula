@@ -44,3 +44,5 @@ app-example
 .vercel
 
 *.bak
+.wrk/
+server_dist/
