@@ -46,3 +46,4 @@ app-example
 *.bak
 .wrk/
 server_dist/
+coverage/
