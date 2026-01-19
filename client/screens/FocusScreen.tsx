@@ -335,17 +335,19 @@ export default function FocusScreen() {
       // Add agent status events
       activeSwarm.agents.forEach((agent) => {
         if (agent.status === "completed" && agent.confidence !== undefined) {
+          const confidence = agent.confidence ?? 0;
+          const confidenceLabel = `${(confidence * 100).toFixed(1)}%`;
           const existing = activityEvents.find(
             (e) =>
               e.agentId === agent.id &&
               e.message.includes("completed") &&
-              e.message.includes(`${(agent.confidence * 100).toFixed(1)}%`),
+              e.message.includes(confidenceLabel),
           );
           if (!existing) {
             newEvents.push({
               id: `agent-${agent.id}-${Date.now()}`,
               type: "success",
-              message: `completed with ${(agent.confidence * 100).toFixed(1)}% confidence`,
+              message: `completed with ${confidenceLabel} confidence`,
               timestamp: new Date(),
               agentId: agent.id,
             });

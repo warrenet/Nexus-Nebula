@@ -21,15 +21,19 @@ import { Colors } from "@/constants/theme";
 
 // Conditionally import KeyboardProvider only on native platforms
 // web doesn't need it and it may crash silently
-let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }>;
+function WebKeyboardProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> =
+  WebKeyboardProvider;
 if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  KeyboardProvider =
-    require("react-native-keyboard-controller").KeyboardProvider;
-} else {
-  KeyboardProvider = ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  );
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const {
+    KeyboardProvider: NativeKeyboardProvider,
+  } = require("react-native-keyboard-controller");
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  KeyboardProvider = NativeKeyboardProvider;
 }
 
 const NexusTheme = {

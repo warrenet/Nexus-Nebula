@@ -126,7 +126,7 @@ function checkTypeScript() {
     });
     console.log(`${CHECK} TypeScript compiles without errors`);
     return true;
-  } catch (e) {
+  } catch (_error) {
     console.log(`${FAIL} TypeScript compilation errors`);
     hasErrors = true;
     return false;
@@ -154,7 +154,6 @@ function checkPort5000() {
 // 7. Check server health (live mode)
 function checkServerHealth() {
   return new Promise((resolve) => {
-    const startTime = Date.now();
     const maxRetries = Math.ceil(HEALTH_TIMEOUT_MS / 1000);
     let retries = 0;
 

@@ -105,7 +105,7 @@ function getAppName(): string {
       const appJson = JSON.parse(appJsonContent);
       return appJson.expo?.name || "App Landing Page";
     }
-  } catch (e) {
+  } catch {
     console.warn("Could not read app.json, using default name");
   }
   return "App Landing Page";

@@ -49,6 +49,21 @@ function ToastItem({
   const slideAnim = useRef(new Animated.Value(100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  const handleDismiss = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 100,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onDismiss(toast.id));
+  }, [slideAnim, opacityAnim, onDismiss, toast.id]);
+
   React.useEffect(() => {
     // Slide in
     Animated.parallel([
@@ -71,22 +86,7 @@ function ToastItem({
     }, toast.duration || 3000);
 
     return () => clearTimeout(timer);
-  }, []);
-
-  const handleDismiss = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 100,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onDismiss(toast.id));
-  }, [slideAnim, opacityAnim, onDismiss, toast.id]);
+  }, [handleDismiss, opacityAnim, slideAnim, toast.duration]);
 
   const getConfig = () => {
     switch (toast.type) {

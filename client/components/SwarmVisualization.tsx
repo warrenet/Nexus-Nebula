@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -312,8 +312,6 @@ export function PhaseIndicator({ currentPhase }: PhaseIndicatorProps) {
       {PHASES.map((phase, index) => {
         const isActive = index === currentIndex;
         const isCompleted = index < currentIndex;
-        const isPending = index > currentIndex;
-
         const color = isCompleted
           ? Colors.dark.success
           : isActive
