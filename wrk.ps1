@@ -1,6 +1,6 @@
 param(
   [Parameter(Position=0)]
-  [ValidateSet("status","ship","secrets","help")]
+  [ValidateSet("status","ship","secrets","tree","preflight","fix","doctor","ci-last-fail","autofix","help")]
   [string]$Cmd = "status"
 )
 

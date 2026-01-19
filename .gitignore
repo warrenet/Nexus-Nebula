@@ -45,5 +45,7 @@ app-example
 
 *.bak
 .wrk/
+.wrk/logs/
 server_dist/
 coverage/
+build/
