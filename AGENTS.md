@@ -1,7 +1,11 @@
 # AGENTS_OPTIMIZED.md — Warren + Claude + Codex Operating System
 *Version: 1.0 | Session: S83 | 2026-03-01 | warren-dev v0.8.2*
-*Deploy to: all active project roots (nightagent/, nexus-nebula/, multicortex/, neural-construct/, commander-pwa/, sovereign-dedupe/)*
+*Deploy to: nexus-nebula/, multicortex/, neural-construct/, commander-pwa/, sovereign-dedupe/*
 *Replaces: project-level AGENTS.md files where deployed. Keep project-specific sections; replace generic operating norms with this file's standards.*
+
+> **⚠️ SCOPE NOTE — NOT for nightagent (Kairos W):**
+> This document describes the Claude + Codex multi-agent delegation system operating in the `terminal talk/` workspace. It contains multi-agent delegation patterns and multi-swarm architecture that are appropriate for this workspace.
+> **Kairos W (nightagent/) has its own `AGENTS.md`** that respects its single-swarm, single-supervisor design. Never deploy this file to `nightagent/`. See `nightagent/AGENTS.md` for Kairos-specific norms.
 
 ---
 
